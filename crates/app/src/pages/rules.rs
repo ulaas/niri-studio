@@ -49,6 +49,8 @@ enum Purpose {
 pub struct State {
     tab: Tab,
     selected: Option<Sel>,
+    /// Debug/screenshot aid: select the n-th enabled rule.
+    pub preselect: Option<usize>,
     picking: Option<(Purpose, Receiver<anyhow::Result<Option<Window>>>)>,
     with_title: bool,
     renaming: Option<(Sel, String)>,
@@ -101,6 +103,9 @@ pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
     }
 
     let list = entries(cx, st.tab);
+    if let Some(i) = st.preselect.take() {
+        st.selected = Some(Sel::On(i));
+    }
     if let Some(sel) = &st.selected {
         if !list.iter().any(|(_, _, e)| e.sel() == *sel) {
             st.selected = None;
@@ -390,8 +395,13 @@ fn rule_list(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, list: &[(usize, us
     }
 }
 
+/// A short description of a disabled rule's text: its first matcher, else its first line.
 fn first_line(s: &str) -> String {
-    s.lines().next().unwrap_or("").trim_end_matches('{').trim().to_owned()
+    s.lines()
+        .map(str::trim)
+        .find(|l| l.starts_with("match "))
+        .map(|l| l.trim_start_matches("match ").to_owned())
+        .unwrap_or_else(|| s.lines().next().unwrap_or("").trim_end_matches('{').trim().to_owned())
 }
 
 /// A readable name for an unlabelled rule: its first matcher and a property or two.
@@ -555,7 +565,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, r: &NodeRef, idx: usi
     if let Some(m) = remove {
         let _ = cx.doc.remove(&m);
     }
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         if ui.button("➕ match").clicked() {
             let _ = cx.doc.append(Some(r), "match");
         }

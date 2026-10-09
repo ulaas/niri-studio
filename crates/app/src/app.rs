@@ -146,6 +146,10 @@ impl App {
         };
         if let Some(shot) = &app.shot {
             app.page = shot.page;
+            if let Some(i) = std::env::var("NIRI_STUDIO_SELECT").ok().and_then(|s| s.parse().ok()) {
+                app.pages.binds.selected = Some(i);
+                app.pages.rules.preselect = Some(i);
+            }
         }
         app.refresh_cfg();
         app

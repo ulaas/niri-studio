@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=niri studio
+GenericName=Compositor Settings
+Comment=Visual editor for the niri configuration
+Exec=niri-studio
+Icon=preferences-desktop
+Terminal=false
+Categories=Settings;DesktopSettings;
+Keywords=niri;wayland;compositor;config;keybindings;window rules;displays;
+StartupWMClass=niri-studio

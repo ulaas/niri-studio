@@ -1,6 +1,6 @@
 mod animations;
 mod appearance;
-mod binds;
+pub mod binds;
 mod displays;
 mod forms;
 mod history;
@@ -18,8 +18,8 @@ pub struct State {
     pub raw: raw::State,
     history: history::State,
     displays: displays::State,
-    binds: binds::State,
-    rules: rules::State,
+    pub binds: binds::State,
+    pub rules: rules::State,
     animations: animations::State,
 }
 

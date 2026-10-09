@@ -47,6 +47,11 @@ pub fn preview_card(ui: &mut egui::Ui, cx: &mut Ctx) {
             if !cx.doc.validation().ok() {
                 ui.colored_label(ui.visuals().warn_fg_color, "Showing the last valid config.");
             }
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if ui.link("Focus ring, border and shadow →").clicked() {
+                    *cx.nav = Some(crate::app::Nav::Page(schema::Page::Appearance));
+                }
+            });
         });
     });
 }

@@ -165,3 +165,28 @@ fn comment_paragraphs_are_not_labels() {
     assert_eq!(d.label(&rules[0]), None);
     assert_eq!(d.label(&rules[1]).as_deref(), Some("Named"));
 }
+
+#[test]
+fn save_backs_up_and_restores() {
+    let dir = std::env::temp_dir().join(format!("niri-studio-test-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    // Backups go under XDG_STATE_HOME; point it at the temp dir.
+    std::env::set_var("XDG_STATE_HOME", dir.join("state"));
+    let path = dir.join("config.kdl");
+    std::fs::write(&path, BASE).unwrap();
+
+    let mut d = Document::load(&path).unwrap();
+    d.set_arg(&p("layout/gaps"), 4i64).unwrap();
+    assert!(d.is_dirty());
+    let out = d.save().unwrap();
+    assert!(!d.is_dirty());
+    assert!(std::fs::read_to_string(&path).unwrap().contains("gaps 4"));
+    assert_eq!(out.backups.len(), 1);
+    assert_eq!(out.backups[0].read().unwrap(), BASE);
+    assert!(crate::list_backups().iter().any(|b| b.path == out.backups[0].path));
+
+    d.restore_backups(&out.backups).unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), BASE);
+    assert!(d.changed_on_disk().is_empty());
+    std::fs::remove_dir_all(&dir).unwrap();
+}
