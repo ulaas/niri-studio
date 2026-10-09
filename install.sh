@@ -7,5 +7,7 @@ bin="$HOME/.local/bin"
 apps="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 install -Dm755 target/release/niri-studio "$bin/niri-studio.new"
 mv -f "$bin/niri-studio.new" "$bin/niri-studio"
-install -Dm644 resources/niri-studio.desktop "$apps/niri-studio.desktop"
+# Absolute Exec: launchers run with the session's PATH, which may not include ~/.local/bin.
+mkdir -p "$apps"
+sed "s|^Exec=niri-studio|Exec=$bin/niri-studio|" resources/niri-studio.desktop >"$apps/niri-studio.desktop"
 echo "installed $bin/niri-studio"
