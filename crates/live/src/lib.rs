@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn every_catalogued_action_parses() {
         // Arguments mirror schema's ACTIONS hints.
-        for (name, arg) in [("set-column-width", "+10%"), ("switch-layout", "next"), ("move-window-to-workspace", "2")] {
+        for (name, arg) in [("set-column-width", "+10%"), ("switch-layout", "next"), ("switch-layout", "1"), ("move-window-to-workspace", "2")] {
             parse_action(name, &s(&[arg]), &[]).unwrap_or_else(|e| panic!("{name}: {e}"));
         }
     }

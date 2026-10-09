@@ -4,6 +4,7 @@ pub mod binds;
 mod displays;
 mod forms;
 mod history;
+mod input;
 mod layout;
 pub mod raw;
 pub mod rules;
@@ -21,6 +22,7 @@ pub struct State {
     pub binds: binds::State,
     pub rules: rules::State,
     animations: animations::State,
+    input: input::State,
 }
 
 pub fn show(page: Page, ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
@@ -35,7 +37,8 @@ pub fn show(page: Page, ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
     egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
         ui.set_max_width(ui.available_width().min(1100.0));
         match page {
-            Page::Input | Page::Gestures | Page::Misc => forms::show(ui, cx, page),
+            Page::Input => input::show(ui, cx, &mut st.input),
+            Page::Gestures | Page::Misc => forms::show(ui, cx, page),
             Page::Layout => layout::show(ui, cx),
             Page::Appearance => appearance::show(ui, cx),
             Page::Animations => animations::show(ui, cx, &mut st.animations),

@@ -7,15 +7,11 @@ use crate::widgets;
 
 pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, page: Page) {
     let subtitle = match page {
-        Page::Input => "Keyboard layouts, pointer devices and focus behaviour.",
         Page::Gestures => "Hot corners, drag-and-drop edge scrolling and the recent windows switcher.",
         Page::Misc => "Overlays, notifications and the clipboard.",
         _ => "",
     };
     widgets::heading(ui, page.title(), subtitle);
-    if page == Page::Input {
-        keyboard_status(ui, cx);
-    }
     sections(ui, cx, page, &[]);
 }
 
@@ -43,22 +39,5 @@ pub fn only(ui: &mut egui::Ui, cx: &mut Ctx, page: Page, names: &[&str]) {
                 }
             });
         }
-    }
-}
-
-fn keyboard_status(ui: &mut egui::Ui, cx: &mut Ctx) {
-    let kb = cx.live.state().keyboard.clone();
-    if let Some(kb) = kb {
-        ui.horizontal_wrapped(|ui| {
-            ui.weak("Active layouts:");
-            for (i, name) in kb.names.iter().enumerate() {
-                let text = egui::RichText::new(name);
-                if i == kb.current_idx as usize {
-                    ui.label(text.strong()).on_hover_text("Current layout");
-                } else {
-                    ui.label(text);
-                }
-            }
-        });
     }
 }

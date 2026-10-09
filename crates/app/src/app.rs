@@ -62,6 +62,8 @@ pub struct Ctx<'a> {
     pub nav: &'a mut Option<Nav>,
     /// Set by a page to save with a timed revert (display changes).
     pub request_trial: &'a mut bool,
+    /// Set by a page to save now.
+    pub request_save: &'a mut bool,
 }
 
 struct Pending {
@@ -92,6 +94,7 @@ pub struct App {
     pending: Option<Pending>,
     trial: Option<Trial>,
     request_trial: bool,
+    request_save: bool,
     live_apply: bool,
     edit_seen: (u64, Instant),
 
@@ -135,6 +138,7 @@ impl App {
             pending: None,
             trial: None,
             request_trial: false,
+            request_save: false,
             live_apply: false,
             edit_seen: (0, Instant::now()),
             disk_check: Instant::now(),
@@ -237,6 +241,10 @@ impl App {
         if self.request_trial {
             self.request_trial = false;
             self.save(true);
+        }
+        if self.request_save {
+            self.request_save = false;
+            self.save(false);
         }
 
         // Live mode: apply shortly after the last edit.
@@ -368,23 +376,49 @@ impl App {
     }
 
     fn nav_panel(&mut self, ui: &mut egui::Ui) {
-        ui.add_space(6.0);
-        for page in Page::ALL {
-            if page == Page::Raw {
-                ui.separator();
+        const GROUPS: [(&str, &[Page]); 4] = [
+            ("DESKTOP", &[Page::Displays, Page::Layout, Page::Appearance, Page::Animations]),
+            ("BEHAVIOUR", &[Page::Keybinds, Page::Rules, Page::Input, Page::Gestures]),
+            ("SESSION", &[Page::Startup, Page::Misc]),
+            ("ADVANCED", &[Page::Raw, Page::History]),
+        ];
+        ui.add_space(8.0);
+        for (gi, (title, pages)) in GROUPS.iter().enumerate() {
+            if gi > 0 {
+                ui.add_space(10.0);
             }
-            let selected = self.page == page;
-            let text = RichText::new(format!("{}   {}", page.icon(), page.title())).size(15.0);
-            let r = ui.add_sized([ui.available_width(), 30.0], egui::Button::selectable(selected, text));
-            if r.clicked() {
-                self.page = page;
+            ui.horizontal(|ui| {
+                ui.add_space(10.0);
+                ui.label(RichText::new(*title).small().strong().color(ui.visuals().weak_text_color()));
+            });
+            ui.add_space(2.0);
+            for &page in *pages {
+                if nav_item(ui, page, self.page == page, self.page_badge(page)).clicked() {
+                    self.page = page;
+                }
             }
         }
         ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+            ui.add_space(8.0);
             if let Some(wiki) = self.page.wiki() {
-                ui.hyperlink_to("📖 niri docs for this page", format!("{}{wiki}", schema::WIKI));
+                ui.horizontal(|ui| {
+                    ui.add_space(10.0);
+                    ui.hyperlink_to(RichText::new("📖 niri docs for this page").small(), format!("{}{wiki}", schema::WIKI));
+                });
             }
         });
+    }
+
+    /// A small count shown next to a page name, e.g. errors on the raw page.
+    fn page_badge(&mut self, page: Page) -> Option<(String, Color32)> {
+        match page {
+            Page::Raw => {
+                let n = self.doc.validation().errors.len();
+                (n > 0).then(|| (n.to_string(), Color32::from_rgb(220, 80, 80)))
+            }
+            Page::History if self.doc.is_dirty() => Some(("•".into(), Color32::from_rgb(230, 180, 80))),
+            _ => None,
+        }
     }
 
     fn error_panel(&mut self, ui: &mut egui::Ui) {
@@ -593,7 +627,11 @@ impl eframe::App for App {
             self.top_bar(ui);
             ui.add_space(2.0);
         });
-        egui::Panel::left("nav").exact_size(196.0).show(ui, |ui| self.nav_panel(ui));
+        let nav_fill = if ui.visuals().dark_mode { Color32::from_gray(22) } else { Color32::from_gray(238) };
+        egui::Panel::left("nav")
+            .exact_size(212.0)
+            .frame(egui::Frame::new().fill(nav_fill).inner_margin(egui::Margin::symmetric(0, 4)))
+            .show(ui, |ui| self.nav_panel(ui));
         if !self.doc.validation().ok() {
             egui::Panel::bottom("errors").show(ui, |ui| self.error_panel(ui));
         }
@@ -612,6 +650,7 @@ impl eframe::App for App {
                 highlight,
                 nav: &mut self.nav,
                 request_trial: &mut self.request_trial,
+                request_save: &mut self.request_save,
             };
             pages::show(self.page, ui, &mut cx, &mut self.pages);
         });
@@ -652,4 +691,45 @@ fn banner(ui: &mut egui::Ui, level: Level, add: impl FnOnce(&mut egui::Ui)) {
             ui.horizontal_wrapped(add);
         });
     ui.add_space(6.0);
+}
+
+/// A sidebar entry: left-aligned icon and label, an accent bar and fill when selected.
+fn nav_item(ui: &mut egui::Ui, page: Page, selected: bool, badge: Option<(String, Color32)>) -> egui::Response {
+    let height = 32.0;
+    let (rect, resp) = ui.allocate_exact_size(egui::vec2(ui.available_width(), height), egui::Sense::click());
+    let rect = rect.shrink2(egui::vec2(6.0, 1.0));
+    let vis = ui.visuals();
+    let accent = vis.selection.stroke.color;
+    let painter = ui.painter();
+    if selected {
+        painter.rect_filled(rect, 6.0, accent.gamma_multiply(0.16));
+        let bar = egui::Rect::from_min_size(rect.left_top() + egui::vec2(0.0, 7.0), egui::vec2(3.0, rect.height() - 14.0));
+        painter.rect_filled(bar, 2.0, accent);
+    } else if resp.hovered() {
+        painter.rect_filled(rect, 6.0, vis.widgets.hovered.weak_bg_fill.gamma_multiply(0.6));
+    }
+    let fg = if selected { accent } else if resp.hovered() { vis.strong_text_color() } else { vis.text_color() };
+    painter.text(
+        egui::pos2(rect.left() + 24.0, rect.center().y),
+        Align2::CENTER_CENTER,
+        page.icon(),
+        egui::FontId::proportional(15.0),
+        fg,
+    );
+    painter.text(
+        egui::pos2(rect.left() + 44.0, rect.center().y),
+        Align2::LEFT_CENTER,
+        page.title(),
+        egui::FontId::proportional(14.5),
+        fg,
+    );
+    if let Some((text, color)) = badge {
+        let c = egui::pos2(rect.right() - 16.0, rect.center().y);
+        painter.circle_filled(c, 9.0, color.gamma_multiply(0.85));
+        painter.text(c, Align2::CENTER_CENTER, text, egui::FontId::proportional(11.0), Color32::WHITE);
+    }
+    if resp.hovered() {
+        ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+    }
+    resp
 }

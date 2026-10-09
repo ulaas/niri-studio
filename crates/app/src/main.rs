@@ -4,6 +4,7 @@ mod pages;
 mod preview;
 mod shot;
 mod widgets;
+mod xkb;
 
 use std::path::PathBuf;
 
