@@ -121,6 +121,17 @@ pub fn option_at(
     let doc = &mut *cx.doc;
     let is_set = doc.has_in(base, path);
     let current = doc.arg_in(base, path);
+    // niri's default, shown while the option is unset (only for top-level schema paths).
+    let (default, default_note) = match base.is_none().then(|| schema::default_of(&doc::path::display(path))).flatten() {
+        Some((text, note)) => (parse_default(text), note),
+        None => (None, ""),
+    };
+    let unset_note = |ui: &mut Ui| {
+        if !is_set {
+            let text = if default_note.is_empty() { "default".to_owned() } else { default_note.to_owned() };
+            ui.weak(text);
+        }
+    };
     let id = ui.id().with(doc::path::display(path)).with(base.map(|b| (b.file, b.idx.clone())));
     let mut result: Option<Edit> = None;
 
@@ -132,21 +143,22 @@ pub fn option_at(
             }
         }
         Kind::Bool => {
-            let mut on = current.as_ref().and_then(Val::as_bool).unwrap_or(false);
+            let mut on = current.as_ref().or(default.as_ref()).and_then(Val::as_bool).unwrap_or(false);
             if switch(ui, &mut on).changed() {
                 result = Some(Edit::Set(Val::Bool(on)));
             }
         }
         Kind::Int { min, max } => {
-            let mut v = current.as_ref().and_then(Val::as_i64).unwrap_or(min.max(0).min(max));
+            let mut v = current.as_ref().or(default.as_ref()).and_then(Val::as_i64).unwrap_or(min.max(0).min(max));
             let r = ui.add(egui::Slider::new(&mut v, min..=max).clamping(egui::SliderClamping::Never));
             if r.changed() {
                 result = Some(Edit::Set(Val::Int(v)));
             }
+            unset_note(ui);
         }
         Kind::Float { min, max } => {
             let fallback = if (min..=max).contains(&1.0) && max <= 10.0 { 1.0 } else { min.max(0.0) };
-            let mut v = current.as_ref().and_then(Val::as_f64).unwrap_or(fallback);
+            let mut v = current.as_ref().or(default.as_ref()).and_then(Val::as_f64).unwrap_or(fallback);
             let r = ui.add(
                 egui::Slider::new(&mut v, min..=max)
                     .clamping(egui::SliderClamping::Never)
@@ -155,20 +167,26 @@ pub fn option_at(
             if r.changed() {
                 result = Some(Edit::Set(Val::Float(v)));
             }
+            unset_note(ui);
         }
         Kind::Str | Kind::Path => {
             let mut s = current.as_ref().and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_default();
-            let r = ui.add(egui::TextEdit::singleline(&mut s).desired_width(280.0).id(id));
+            let hint = default.as_ref().and_then(|d| d.as_str().map(str::to_owned)).unwrap_or_default();
+            let r = ui.add(egui::TextEdit::singleline(&mut s).desired_width(280.0).id(id).hint_text(hint));
             if r.changed() {
                 result = Some(Edit::Set(Val::Str(s)));
             }
         }
         Kind::Enum(values) => {
             let cur = current.as_ref().and_then(|v| v.as_str().map(str::to_owned));
+            let default_label = match default.as_ref().and_then(|d| d.as_str()) {
+                Some(d) => format!("default ({d})"),
+                None => "default".to_owned(),
+            };
             egui::ComboBox::from_id_salt(id)
-                .selected_text(cur.clone().unwrap_or_else(|| "default".into()))
+                .selected_text(cur.clone().unwrap_or_else(|| default_label.clone()))
                 .show_ui(ui, |ui| {
-                    if ui.selectable_label(cur.is_none(), "default").clicked() {
+                    if ui.selectable_label(cur.is_none(), &default_label).clicked() {
                         result = Some(Edit::Remove);
                     }
                     for v in values {
@@ -180,7 +198,8 @@ pub fn option_at(
         }
         Kind::Color => {
             let s = current.as_ref().and_then(|v| v.as_str().map(str::to_owned));
-            if let Some(new) = color_field(ui, id, s.as_deref()) {
+            let fallback = default.as_ref().and_then(|d| d.as_str()).and_then(color::parse);
+            if let Some(new) = color_field_or(ui, id, s.as_deref(), fallback) {
                 result = Some(Edit::Set(Val::Str(new)));
             }
         }
@@ -197,6 +216,19 @@ pub fn option_at(
     };
     if let Err(e) = res {
         cx.toasts.error(format!("{e:#}"));
+    }
+}
+
+/// Parses a default from the schema's KDL text form.
+fn parse_default(text: &str) -> Option<Val> {
+    if let Some(s) = text.strip_prefix('"').and_then(|t| t.strip_suffix('"')) {
+        return Some(Val::str(s));
+    }
+    match text {
+        "true" => Some(Val::Bool(true)),
+        "false" => Some(Val::Bool(false)),
+        t if t.contains('.') => t.parse().ok().map(Val::Float),
+        t => t.parse().ok().map(Val::Int),
     }
 }
 

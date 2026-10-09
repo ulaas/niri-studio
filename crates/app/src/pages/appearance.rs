@@ -20,32 +20,30 @@ pub fn show(ui: &mut egui::Ui, cx: &mut Ctx) {
     let border_on = !cx.cfg.layout.border.off;
     widgets::card(ui, "Focus ring", |ui| {
         ui.weak("Drawn around the active window, outside it. Doesn't take up space.");
-        decoration(ui, cx, "focus-ring", ring_on, true);
+        decoration(ui, cx, "focus-ring", ring_on);
     });
     widgets::card(ui, "Border", |ui| {
         ui.weak("Drawn around every window. Unlike the focus ring, it takes up layout space.");
-        decoration(ui, cx, "border", border_on, false);
+        decoration(ui, cx, "border", border_on);
     });
     widgets::card(ui, "Shadow", |ui| shadow(ui, cx));
     forms::sections(ui, cx, Page::Appearance, &[]);
 }
 
 /// Toggle written as `on`/`off` children, matching niri's conventions.
-fn on_off(ui: &mut egui::Ui, cx: &mut Ctx, base: &str, effective: bool, default_on: bool, label: &str) {
+fn on_off(ui: &mut egui::Ui, cx: &mut Ctx, base: &str, effective: bool, label: &str) {
     let mut on = effective;
     let explicit = cx.doc.has(&p(&format!("{base}/on"))) || cx.doc.has(&p(&format!("{base}/off")));
     let (_, reset) = widgets::row(ui, label, "", explicit, false, |ui| widgets::switch(ui, &mut on).changed());
     let res = if reset {
         cx.doc.remove_all(&p(&format!("{base}/on"))).and_then(|_| cx.doc.remove_all(&p(&format!("{base}/off"))))
     } else if on != effective {
+        // Always write the flag explicitly: for the border, any `border { }` block turns it on,
+        // so merely removing `on` wouldn't turn it off.
         let (add, del) = if on { ("on", "off") } else { ("off", "on") };
-        let r = cx.doc.remove_all(&p(&format!("{base}/{del}")));
-        // Only write the flag that differs from niri's default.
-        if on == default_on {
-            r
-        } else {
-            r.and_then(|_| cx.doc.set_flag(&p(&format!("{base}/{add}")), true))
-        }
+        cx.doc
+            .remove_all(&p(&format!("{base}/{del}")))
+            .and_then(|_| cx.doc.set_flag(&p(&format!("{base}/{add}")), true))
     } else {
         Ok(())
     };
@@ -54,9 +52,9 @@ fn on_off(ui: &mut egui::Ui, cx: &mut Ctx, base: &str, effective: bool, default_
     }
 }
 
-fn decoration(ui: &mut egui::Ui, cx: &mut Ctx, name: &str, effective: bool, default_on: bool) {
+fn decoration(ui: &mut egui::Ui, cx: &mut Ctx, name: &str, effective: bool) {
     let base = format!("layout/{name}");
-    on_off(ui, cx, &base, effective, default_on, "Enabled");
+    on_off(ui, cx, &base, effective, "Enabled");
     if !effective {
         return;
     }
@@ -173,7 +171,7 @@ fn angle_dial(ui: &mut egui::Ui, deg: f32) {
 
 fn shadow(ui: &mut egui::Ui, cx: &mut Ctx) {
     let on = cx.cfg.layout.shadow.on;
-    on_off(ui, cx, "layout/shadow", on, false, "Enabled");
+    on_off(ui, cx, "layout/shadow", on, "Enabled");
     if !on {
         return;
     }
@@ -187,7 +185,8 @@ fn shadow(ui: &mut egui::Ui, cx: &mut Ctx) {
         let cur = cx.doc.prop(&offset, key).and_then(|v| v.as_f64());
         let label = if key == "x" { "Offset x" } else { "Offset y" };
         let (v, reset) = widgets::row(ui, label, "", cur.is_some(), false, |ui| {
-            let mut v = cur.unwrap_or(0.0);
+            // niri's defaults: x=0, y=5.
+            let mut v = cur.unwrap_or(if key == "y" { 5.0 } else { 0.0 });
             ui.add(egui::Slider::new(&mut v, -50.0..=50.0).max_decimals(1)).changed().then_some(v)
         });
         if reset {

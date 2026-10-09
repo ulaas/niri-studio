@@ -283,7 +283,7 @@ opts! {
     }
     Gestures "Hot corners" {
         "gestures/hot-corners/off" Flag, "Disable hot corners", "";
-        "gestures/hot-corners/top-left" Flag, "Top left", "";
+        "gestures/hot-corners/top-left" Flag, "Top left", "niri uses the top-left corner when none is chosen here.";
         "gestures/hot-corners/top-right" Flag, "Top right", "";
         "gestures/hot-corners/bottom-left" Flag, "Bottom left", "";
         "gestures/hot-corners/bottom-right" Flag, "Bottom right", "";
@@ -497,3 +497,90 @@ pub static QUICK_RULES: &[(&str, &str, &[&str])] = &[
     ("Open tabbed", "Tabbed", &["default-column-display \"tabbed\""]),
     ("Empty rule", "Rule", &[]),
 ];
+
+/// niri's default for an option, as KDL text. Each one is proven in tests: a config with
+/// `option <default>` parses to exactly the same `Config` as one without it.
+pub static DEFAULTS: &[(&str, &str)] = &[
+    ("input/keyboard/repeat-delay", "600"),
+    ("input/keyboard/repeat-rate", "25"),
+    ("input/keyboard/track-layout", "\"global\""),
+    ("layout/gaps", "16"),
+    ("layout/struts/left", "0"),
+    ("layout/struts/right", "0"),
+    ("layout/struts/top", "0"),
+    ("layout/struts/bottom", "0"),
+    ("layout/center-focused-column", "\"never\""),
+    ("layout/default-column-display", "\"normal\""),
+    ("layout/background-color", "\"rgb(25%, 25%, 25%)\""),
+    ("layout/tab-indicator/gap", "5"),
+    ("layout/tab-indicator/width", "4"),
+    ("layout/tab-indicator/position", "\"left\""),
+    ("layout/tab-indicator/gaps-between-tabs", "0"),
+    ("layout/tab-indicator/corner-radius", "0"),
+    ("layout/insert-hint/color", "\"#7fc8ff80\""),
+    ("layout/focus-ring/width", "4"),
+    ("layout/focus-ring/active-color", "\"#7fc8ff\""),
+    ("layout/focus-ring/inactive-color", "\"#505050\""),
+    ("layout/focus-ring/urgent-color", "\"#9b0000\""),
+    ("layout/border/width", "4"),
+    ("layout/border/active-color", "\"#ffc87f\""),
+    ("layout/border/inactive-color", "\"#505050\""),
+    ("layout/border/urgent-color", "\"#9b0000\""),
+    ("layout/shadow/softness", "30"),
+    ("layout/shadow/spread", "5"),
+    ("layout/shadow/color", "\"#00000077\""),
+    ("layout/shadow/draw-behind-window", "false"),
+    ("cursor/xcursor-theme", "\"default\""),
+    ("cursor/xcursor-size", "24"),
+    ("overview/zoom", "0.5"),
+    ("overview/backdrop-color", "\"rgb(15%, 15%, 15%)\""),
+    ("blur/passes", "3"),
+    ("blur/offset", "3"),
+    ("blur/noise", "0.02"),
+    ("blur/saturation", "1.5"),
+    ("animations/slowdown", "1"),
+    ("gestures/dnd-edge-view-scroll/trigger-width", "30"),
+    ("gestures/dnd-edge-view-scroll/delay-ms", "100"),
+    ("gestures/dnd-edge-view-scroll/max-speed", "1500"),
+    ("gestures/dnd-edge-workspace-switch/trigger-height", "50"),
+    ("gestures/dnd-edge-workspace-switch/delay-ms", "100"),
+    ("gestures/dnd-edge-workspace-switch/max-speed", "1500"),
+    ("recent-windows/debounce-ms", "750"),
+    ("recent-windows/open-delay-ms", "150"),
+    ("recent-windows/highlight/active-color", "\"rgb(60%, 60%, 60%)\""),
+    ("recent-windows/highlight/urgent-color", "\"rgb(100%, 60%, 60%)\""),
+    ("recent-windows/highlight/padding", "30"),
+    ("recent-windows/highlight/corner-radius", "0"),
+    ("recent-windows/previews/max-height", "480"),
+    ("recent-windows/previews/max-scale", "0.5"),
+    ("screenshot-path", "\"~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png\""),
+    ("xwayland-satellite/path", "\"xwayland-satellite\""),
+];
+
+/// Defaults that aren't niri settings but come from elsewhere when unset (libinput, the
+/// session). Shown to the user, but not provable by comparing configs.
+pub static NOMINAL_DEFAULTS: &[(&str, &str, &str)] = &[
+    ("input/touchpad/accel-speed", "0", "libinput default"),
+    ("input/mouse/accel-speed", "0", "libinput default"),
+    ("input/trackpoint/accel-speed", "0", "libinput default"),
+    ("input/touchpad/scroll-factor", "1", "no scaling"),
+    ("input/mouse/scroll-factor", "1", "no scaling"),
+    ("input/touchpad/pinch-sensitivity", "1", "no scaling"),
+    ("input/touchpad/accel-profile", "\"adaptive\"", "libinput default"),
+    ("input/mouse/accel-profile", "\"adaptive\"", "libinput default"),
+    ("input/trackpoint/accel-profile", "\"adaptive\"", "libinput default"),
+    ("input/mod-key", "\"Super\"", "Super, or Alt when nested"),
+    ("input/mod-key-nested", "\"Alt\"", ""),
+    ("cursor/hide-after-inactive-ms", "0", "never hides"),
+    ("input/touchpad/drag", "true", "libinput default"),
+];
+
+/// The default to display for an option: (KDL text, note). The note is empty when the value
+/// is niri's own proven default.
+pub fn default_of(path: &str) -> Option<(&'static str, &'static str)> {
+    DEFAULTS
+        .iter()
+        .find(|(p, _)| *p == path)
+        .map(|(_, v)| (*v, ""))
+        .or_else(|| NOMINAL_DEFAULTS.iter().find(|(p, ..)| *p == path).map(|(_, v, n)| (*v, *n)))
+}

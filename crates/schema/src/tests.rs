@@ -82,3 +82,36 @@ fn rule_props_are_accepted_by_niri() {
     }
     assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n\n"));
 }
+
+#[test]
+fn defaults_match_niri() {
+    use doc::Document;
+    let parse = |text: &str| {
+        let mut d = Document::from_text(PathBuf::from("/nonexistent/config.kdl"), text.to_owned());
+        d.validation().config.clone().unwrap_or_else(|| panic!("invalid: {text}"))
+    };
+    let empty = parse("");
+    // Any `border { }` block turns the border on, so its values are compared with an empty block.
+    let empty_border = parse("layout {\n    border {\n    }\n}\n");
+    let mut failures = Vec::new();
+    for (path, value) in DEFAULTS {
+        let base = if path.starts_with("layout/border/") { &empty_border } else { &empty };
+        let mut d = Document::from_text(PathBuf::from("/nonexistent/config.kdl"), String::new());
+        // Render through the doc API so nesting is created the same way the app does it.
+        d.ensure(&p(path)).unwrap();
+        let text = d.main().text.replacen(path.rsplit('/').next().unwrap(), &format!("{} {value}", path.rsplit('/').next().unwrap()), 1);
+        if *parse(&text) != **base {
+            failures.push(format!("{path} {value} is not niri's default"));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+#[test]
+fn defaults_refer_to_real_options() {
+    for (path, ..) in DEFAULTS.iter().map(|(p, v)| (p, v, "")).chain(NOMINAL_DEFAULTS.iter().map(|(p, v, n)| (p, v, *n))) {
+        let known = OPTIONS.iter().any(|o| o.path == *path) || path.starts_with("layout/focus-ring/") || path.starts_with("layout/border/") || path.starts_with("layout/shadow/");
+        assert!(known, "{path} isn't in the schema");
+    }
+}
+
