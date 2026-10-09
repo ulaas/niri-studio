@@ -1619,6 +1619,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "kdl 6.7.1",
+ "knuffel",
  "miette 5.10.0",
  "niri-config",
 ]

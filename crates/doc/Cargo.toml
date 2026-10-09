@@ -8,4 +8,5 @@ license.workspace = true
 kdl.workspace = true
 niri-config.workspace = true
 miette.workspace = true
+knuffel = "3.2"
 anyhow.workspace = true
