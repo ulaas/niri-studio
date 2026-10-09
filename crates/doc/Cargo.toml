@@ -1,0 +1,11 @@
+[package]
+name = "niri-studio-doc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kdl.workspace = true
+niri-config.workspace = true
+miette.workspace = true
+anyhow.workspace = true

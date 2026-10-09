@@ -1,0 +1,10 @@
+[package]
+name = "niri-studio-live"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+niri-ipc.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true

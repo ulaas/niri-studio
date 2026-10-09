@@ -1,0 +1,15 @@
+[package]
+name = "niri-studio"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+eframe.workspace = true
+egui.workspace = true
+doc.workspace = true
+schema.workspace = true
+live.workspace = true
+niri-config.workspace = true
+niri-ipc.workspace = true
+anyhow.workspace = true
