@@ -23,7 +23,7 @@ pub struct Diag {
 pub struct Validation {
     pub errors: Vec<Diag>,
     /// The parsed config when valid; drives previews with exactly niri's interpretation.
-    pub config: Option<Box<niri_config::Config>>,
+    pub config: Option<std::rc::Rc<niri_config::Config>>,
     /// Included files that have unsaved edits; niri reads includes from disk, so their
     /// in-memory contents are not part of this verdict.
     pub unsaved_includes: bool,
@@ -40,7 +40,7 @@ pub fn validate(doc: &Document) -> Validation {
     let res = niri_config::Config::parse(&main.path, &main.text);
     let unsaved_includes = doc.files.iter().skip(1).any(|f| f.is_dirty());
     match res.config {
-        Ok(config) => Validation { errors: Vec::new(), config: Some(Box::new(config)), unsaved_includes },
+        Ok(config) => Validation { errors: Vec::new(), config: Some(std::rc::Rc::new(config)), unsaved_includes },
         Err(err) => {
             let mut errors = Vec::new();
             collect(doc, &err.main, &mut errors);

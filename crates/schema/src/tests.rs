@@ -60,3 +60,25 @@ fn every_action_is_accepted_by_niri() {
     }
     assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n\n"));
 }
+
+#[test]
+fn rule_props_are_accepted_by_niri() {
+    let mut failures = Vec::new();
+    for (node, props) in [("window-rule", WINDOW_RULE_PROPS), ("layer-rule", LAYER_RULE_PROPS)] {
+        for (name, kind, _, _) in props {
+            let o = Opt { path: name, kind: *kind, label: "", help: "", page: Page::Rules, section: "" };
+            for v in values(&o) {
+                let v = v.map(|v| v.to_kdl()).unwrap_or_default();
+                check(&format!("{node} {{\n    {name} {v}\n}}\n"), &format!("{node}/{name}"), &mut failures);
+            }
+        }
+    }
+    for (flag, _) in WINDOW_MATCH_FLAGS {
+        check(&format!("window-rule {{\n    match {flag}=true\n    exclude {flag}=false\n}}\n"), flag, &mut failures);
+    }
+    for (_, _, lines) in QUICK_RULES {
+        let body: String = lines.iter().map(|l| format!("    {l}\n")).collect();
+        check(&format!("window-rule {{\n    match app-id=\"^x$\"\n{body}}}\n"), &format!("{lines:?}"), &mut failures);
+    }
+    assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n\n"));
+}

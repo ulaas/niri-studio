@@ -73,7 +73,7 @@ impl Page {
     pub fn icon(self) -> &'static str {
         match self {
             Page::Input => "⌨",
-            Page::Layout => "▥",
+            Page::Layout => "📐",
             Page::Appearance => "🎨",
             Page::Animations => "〰",
             Page::Displays => "🖵",
@@ -437,3 +437,63 @@ pub static ACTIONS: &[(&str, &str)] = &[
 
 #[cfg(test)]
 mod tests;
+
+/// A property inside a rule node: (name, kind, label, help).
+pub type RuleProp = (&'static str, Kind, &'static str, &'static str);
+
+pub static WINDOW_RULE_PROPS: &[RuleProp] = &[
+    ("open-floating", Kind::Bool, "Open floating", ""),
+    ("open-maximized", Kind::Bool, "Open maximized", ""),
+    ("open-maximized-to-edges", Kind::Bool, "Open maximized to edges", "Fill the screen, ignoring gaps and struts."),
+    ("open-fullscreen", Kind::Bool, "Open fullscreen", ""),
+    ("open-focused", Kind::Bool, "Focus when opened", "Off keeps new windows from stealing focus."),
+    ("open-on-workspace", Kind::Str, "Open on workspace", "Name of a named workspace."),
+    ("open-on-output", Kind::Str, "Open on output", "Connector or monitor name."),
+    ("default-column-display", Kind::Enum(&["normal", "tabbed"]), "Column display", ""),
+    ("opacity", Kind::Float { min: 0.0, max: 1.0 }, "Opacity", ""),
+    ("block-out-from", Kind::Enum(&["screencast", "screen-capture"]), "Hide from", "Blacks the window out in screencasts or all screen captures."),
+    ("geometry-corner-radius", Kind::Float { min: 0.0, max: 64.0 }, "Corner radius", "For borders, focus ring and shadow."),
+    ("clip-to-geometry", Kind::Bool, "Clip to corners", "Cut the window to its rounded geometry."),
+    ("draw-border-with-background", Kind::Bool, "Border with background", "Fill behind the window with the border color."),
+    ("variable-refresh-rate", Kind::Bool, "Variable refresh rate", "Enable VRR while this window is shown (needs on-demand VRR)."),
+    ("tiled-state", Kind::Bool, "Tell the app it's tiled", ""),
+    ("baba-is-float", Kind::Bool, "Baba is float", "Make the window bob gently."),
+    ("scroll-factor", Kind::Float { min: 0.0, max: 10.0 }, "Scroll factor", ""),
+    ("on-xdg-activate", Kind::Enum(&["focus", "set-urgent", "ignore"]), "When it asks for focus", ""),
+    ("min-width", Kind::Int { min: 0, max: 65535 }, "Min width", ""),
+    ("max-width", Kind::Int { min: 0, max: 65535 }, "Max width", ""),
+    ("min-height", Kind::Int { min: 0, max: 65535 }, "Min height", ""),
+    ("max-height", Kind::Int { min: 0, max: 65535 }, "Max height", ""),
+];
+
+pub static LAYER_RULE_PROPS: &[RuleProp] = &[
+    ("opacity", Kind::Float { min: 0.0, max: 1.0 }, "Opacity", ""),
+    ("block-out-from", Kind::Enum(&["screencast", "screen-capture"]), "Hide from", ""),
+    ("geometry-corner-radius", Kind::Float { min: 0.0, max: 64.0 }, "Corner radius", ""),
+    ("place-within-backdrop", Kind::Bool, "Place within overview backdrop", ""),
+    ("baba-is-float", Kind::Bool, "Baba is float", ""),
+];
+
+/// Boolean matchers: (property, label).
+pub static WINDOW_MATCH_FLAGS: &[(&str, &str)] = &[
+    ("is-floating", "floating"),
+    ("is-focused", "focused"),
+    ("is-active", "active"),
+    ("is-active-in-column", "active in column"),
+    ("is-urgent", "urgent"),
+    ("is-window-cast-target", "being cast"),
+    ("at-startup", "at startup"),
+];
+
+/// One-click rules applied to a picked window: (button, label prefix, body lines).
+pub static QUICK_RULES: &[(&str, &str, &[&str])] = &[
+    ("Always float", "Float", &["open-floating true"]),
+    ("Open maximized", "Maximize", &["open-maximized true"]),
+    ("Open fullscreen", "Fullscreen", &["open-fullscreen true"]),
+    ("Don't steal focus", "No focus steal", &["open-focused false"]),
+    ("Slightly transparent", "Transparent", &["opacity 0.9"]),
+    ("Hide from screencasts", "Private", &["block-out-from \"screencast\""]),
+    ("Rounded corners", "Rounded", &["geometry-corner-radius 12", "clip-to-geometry true"]),
+    ("Open tabbed", "Tabbed", &["default-column-display \"tabbed\""]),
+    ("Empty rule", "Rule", &[]),
+];

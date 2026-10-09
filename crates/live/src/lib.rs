@@ -178,3 +178,32 @@ pub fn niri_validate(path: &std::path::Path) -> Result<()> {
         bail!("{}", String::from_utf8_lossy(&out.stderr).trim())
     }
 }
+
+/// Asks niri to let the user click a window (Esc cancels). Runs on a thread because niri
+/// replies only after the click; poll the receiver each frame.
+pub fn pick_window(repaint: impl Fn() + Send + 'static) -> std::sync::mpsc::Receiver<Result<Option<Window>>> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    thread::spawn(move || {
+        let res = match request(Request::PickWindow) {
+            Ok(Response::PickedWindow(w)) => Ok(w),
+            Ok(other) => Err(anyhow!("unexpected reply {other:?}")),
+            Err(e) => Err(e),
+        };
+        let _ = tx.send(res);
+        repaint();
+    });
+    rx
+}
+
+/// Namespaces of the layer-shell surfaces currently open (bars, launchers, wallpapers…).
+pub fn layer_namespaces() -> Vec<String> {
+    match request(Request::Layers) {
+        Ok(Response::Layers(layers)) => {
+            let mut v: Vec<String> = layers.into_iter().map(|l| l.namespace).collect();
+            v.sort();
+            v.dedup();
+            v
+        }
+        _ => Vec::new(),
+    }
+}

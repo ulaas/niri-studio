@@ -112,3 +112,56 @@ fn reports_errors_with_lines() {
     assert!(!v.ok());
     assert_eq!(v.errors[0].line, Some(2), "{:#?}", v.errors);
 }
+
+#[test]
+fn slashdashed_nodes_are_ignored() {
+    let mut d = doc("/-window-rule {\n    match app-id=\"a\"\n}\nwindow-rule {\n    match app-id=\"b\"\n}\n");
+    let rules = d.find_all(&p("window-rule"));
+    assert_eq!(rules.len(), 1);
+    assert_eq!(d.node_text(&rules[0]).unwrap(), "window-rule {\n    match app-id=\"b\"\n}");
+    d.remove(&rules[0]).unwrap();
+    assert_eq!(d.main().text, "/-window-rule {\n    match app-id=\"a\"\n}\n");
+}
+
+#[test]
+fn labels_and_disabling() {
+    let mut d = doc("window-rule {\n    match app-id=\"a\"\n}\n\n// Float pip\n/-window-rule {\n    match title=\"}\"\n}\n");
+    let r = d.find(&p("window-rule")).unwrap();
+    assert_eq!(d.label(&r), None);
+    d.set_label(&r, Some("Terminals")).unwrap();
+    assert!(d.main().text.starts_with("// Terminals\nwindow-rule {"), "{}", d.main().text);
+    let r = d.find(&p("window-rule")).unwrap();
+    assert_eq!(d.label(&r).as_deref(), Some("Terminals"));
+
+    let dis = d.disabled_nodes("window-rule");
+    assert_eq!(dis.len(), 1);
+    assert_eq!(dis[0].body, "window-rule {\n    match title=\"}\"\n}");
+    assert_eq!(d.label_at(0, dis[0].range.start).as_deref(), Some("Float pip"));
+
+    d.enable(&dis[0]);
+    assert_eq!(d.find_all(&p("window-rule")).len(), 2);
+    let first = d.find_all(&p("window-rule"))[0].clone();
+    d.disable(&first).unwrap();
+    assert_eq!(d.find_all(&p("window-rule")).len(), 1);
+    assert_valid(&mut d);
+
+    let dis = d.disabled_nodes("window-rule");
+    d.remove_disabled(&dis[0]);
+    assert_eq!(d.main().text, "\n// Float pip\nwindow-rule {\n    match title=\"}\"\n}\n");
+}
+
+#[test]
+fn swap_blocks_moves_labels() {
+    let mut d = doc("// A\nwindow-rule {\n    match app-id=\"a\"\n}\n// B\nwindow-rule {\n    match app-id=\"b\"\n}\n");
+    let rules = d.find_all(&p("window-rule"));
+    d.swap_blocks(&rules[0], &rules[1]).unwrap();
+    assert_eq!(d.main().text, "// B\nwindow-rule {\n    match app-id=\"b\"\n}\n// A\nwindow-rule {\n    match app-id=\"a\"\n}\n");
+}
+
+#[test]
+fn comment_paragraphs_are_not_labels() {
+    let d = doc("// This explains\n// the rule below.\nwindow-rule {\n}\n\n// Named\nwindow-rule {\n}\n");
+    let rules = d.find_all(&p("window-rule"));
+    assert_eq!(d.label(&rules[0]), None);
+    assert_eq!(d.label(&rules[1]).as_deref(), Some("Named"));
+}

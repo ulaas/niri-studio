@@ -5,6 +5,7 @@
 //! comments and formatting are never rewritten. After each edit the text is re-validated with
 //! niri's own parser ([`validate`]), so the app sees exactly what niri will see.
 
+mod annotate;
 mod files;
 pub mod path;
 pub mod validate;
@@ -17,6 +18,7 @@ use std::time::{Duration, Instant};
 use anyhow::{Context as _, Result};
 use kdl::{KdlDocument, KdlNode};
 
+pub use annotate::Disabled;
 pub use files::{format_time, list_backups, state_dir, Backup, SaveOutcome};
 pub use path::{p, Seg};
 pub use validate::{Diag, Validation};
@@ -170,7 +172,18 @@ impl Document {
     /// Every node matching the path, in config order. `Seg::Name` matches every node of that
     /// name at its level; callers usually want the last one ([`Self::find`]).
     pub fn find_all(&self, path: &[Seg]) -> Vec<NodeRef> {
+        self.find_all_in(None, path)
+    }
+
+    /// Like [`Self::find_all`], relative to the children of `base` (or the top level).
+    pub fn find_all_in(&self, base: Option<&NodeRef>, path: &[Seg]) -> Vec<NodeRef> {
         let mut out = Vec::new();
+        if let Some(base) = base {
+            if let Some(children) = self.node(base).and_then(|n| n.children()) {
+                collect(children, base, path, &mut out);
+            }
+            return out;
+        }
         for (fi, file) in self.files.iter().enumerate() {
             if let Ok(kdl) = &file.kdl {
                 let root = NodeRef { file: fi, idx: Vec::new() };
@@ -182,27 +195,51 @@ impl Document {
 
     /// The node that takes effect for this path (the last match).
     pub fn find(&self, path: &[Seg]) -> Option<NodeRef> {
-        self.find_all(path).pop()
+        self.find_in(None, path)
+    }
+
+    pub fn find_in(&self, base: Option<&NodeRef>, path: &[Seg]) -> Option<NodeRef> {
+        self.find_all_in(base, path).pop()
     }
 
     pub fn get(&self, path: &[Seg]) -> Option<&KdlNode> {
-        self.find(path).and_then(|r| self.node(&r))
+        self.get_in(None, path)
+    }
+
+    pub fn get_in(&self, base: Option<&NodeRef>, path: &[Seg]) -> Option<&KdlNode> {
+        self.find_in(base, path).and_then(|r| self.node(&r))
     }
 
     pub fn has(&self, path: &[Seg]) -> bool {
         self.find(path).is_some()
     }
 
+    pub fn has_in(&self, base: Option<&NodeRef>, path: &[Seg]) -> bool {
+        self.find_in(base, path).is_some()
+    }
+
     pub fn args(&self, path: &[Seg]) -> Vec<Val> {
-        self.get(path).map(node_args).unwrap_or_default()
+        self.args_in(None, path)
+    }
+
+    pub fn args_in(&self, base: Option<&NodeRef>, path: &[Seg]) -> Vec<Val> {
+        self.get_in(base, path).map(node_args).unwrap_or_default()
     }
 
     pub fn arg(&self, path: &[Seg]) -> Option<Val> {
         self.args(path).into_iter().next()
     }
 
+    pub fn arg_in(&self, base: Option<&NodeRef>, path: &[Seg]) -> Option<Val> {
+        self.args_in(base, path).into_iter().next()
+    }
+
     pub fn prop(&self, path: &[Seg], key: &str) -> Option<Val> {
-        self.get(path).and_then(|n| node_prop(n, key))
+        self.prop_in(None, path, key)
+    }
+
+    pub fn prop_in(&self, base: Option<&NodeRef>, path: &[Seg], key: &str) -> Option<Val> {
+        self.get_in(base, path).and_then(|n| node_prop(n, key))
     }
 
     /// Children of the node at `r`, as refs.
@@ -221,7 +258,11 @@ impl Document {
 
     /// Sets the node's arguments, keeping its properties and children. Creates it if missing.
     pub fn set_args(&mut self, path: &[Seg], args: &[Val]) -> Result<()> {
-        let r = self.ensure(path)?;
+        self.set_args_in(None, path, args)
+    }
+
+    pub fn set_args_in(&mut self, base: Option<&NodeRef>, path: &[Seg], args: &[Val]) -> Result<()> {
+        let r = self.ensure_in(base, path)?;
         let node = self.node(&r).context("node vanished")?;
         let props: Vec<String> = node
             .entries()
@@ -230,19 +271,34 @@ impl Document {
             .map(|e| self.span_text(r.file, e.span().offset(), e.span().len()).to_owned())
             .collect();
         let entries = args.iter().map(Val::to_kdl).chain(props).collect::<Vec<_>>();
-        self.replace_entries(&r, &entries, &path::display(path))
+        self.replace_entries(&r, &entries, &edit_key(base, path))
     }
 
     pub fn set_arg(&mut self, path: &[Seg], v: impl Into<Val>) -> Result<()> {
         self.set_args(path, &[v.into()])
     }
 
+    pub fn set_arg_in(&mut self, base: Option<&NodeRef>, path: &[Seg], v: impl Into<Val>) -> Result<()> {
+        self.set_args_in(base, path, &[v.into()])
+    }
+
     /// Sets (or with `None`, removes) a property, creating the node if needed.
     pub fn set_prop(&mut self, path: &[Seg], key: &str, v: Option<Val>) -> Result<()> {
-        if v.is_none() && !self.has(path) {
+        self.set_prop_in(None, path, key, v)
+    }
+
+    pub fn set_prop_in(&mut self, base: Option<&NodeRef>, path: &[Seg], key: &str, v: Option<Val>) -> Result<()> {
+        if v.is_none() && !self.has_in(base, path) {
             return Ok(());
         }
-        let r = self.ensure(path)?;
+        let r = self.ensure_in(base, path)?;
+        let key_id = format!("{}@{key}", edit_key(base, path));
+        self.set_prop_ref(&r, key, v, &key_id)
+    }
+
+    /// Sets or removes a property on a specific node. `undo_key` groups rapid edits.
+    pub fn set_prop_ref(&mut self, r: &NodeRef, key: &str, v: Option<Val>, undo_key: &str) -> Result<()> {
+        let r = r.clone();
         let node = self.node(&r).context("node vanished")?;
         let mut entries = Vec::new();
         let mut replaced = false;
@@ -262,29 +318,36 @@ impl Document {
                 entries.push(format!("{}={}", value::ident(key), v.to_kdl()));
             }
         }
-        let key = format!("{}@{key}", path::display(path));
-        self.replace_entries(&r, &entries, &key)
+        self.replace_entries(&r, &entries, undo_key)
     }
 
     /// For flag-style settings (`prefer-no-csd`, `off`): present = true.
     pub fn set_flag(&mut self, path: &[Seg], on: bool) -> Result<()> {
+        self.set_flag_in(None, path, on)
+    }
+
+    pub fn set_flag_in(&mut self, base: Option<&NodeRef>, path: &[Seg], on: bool) -> Result<()> {
         if on {
-            if !self.has(path) {
-                self.ensure(path)?;
+            if !self.has_in(base, path) {
+                self.ensure_in(base, path)?;
             }
             Ok(())
         } else {
-            self.remove_all(path)
+            self.remove_all_in(base, path)
         }
     }
 
     /// Removes every node matching the path.
     pub fn remove_all(&mut self, path: &[Seg]) -> Result<()> {
-        let refs = self.find_all(path);
+        self.remove_all_in(None, path)
+    }
+
+    pub fn remove_all_in(&mut self, base: Option<&NodeRef>, path: &[Seg]) -> Result<()> {
+        let refs = self.find_all_in(base, path);
         if refs.is_empty() {
             return Ok(());
         }
-        self.checkpoint(&path::display(path));
+        self.checkpoint(&edit_key(base, path));
         // Remove back to front so earlier offsets stay valid.
         let mut ranges: Vec<(usize, Range<usize>)> =
             refs.iter().filter_map(|r| Some((r.file, self.removal_range(r)?))).collect();
@@ -381,16 +444,24 @@ impl Document {
 
     /// Returns the node for `path`, creating it (and missing parents) in the main file.
     pub fn ensure(&mut self, path: &[Seg]) -> Result<NodeRef> {
-        if let Some(r) = self.find(path) {
+        self.ensure_in(None, path)
+    }
+
+    pub fn ensure_in(&mut self, base: Option<&NodeRef>, path: &[Seg]) -> Result<NodeRef> {
+        if let Some(r) = self.find_in(base, path) {
             return Ok(r);
         }
         let (last, parent_path) = path.split_last().context("empty path")?;
-        let parent = if parent_path.is_empty() { None } else { Some(self.ensure(parent_path)?) };
+        let parent = if parent_path.is_empty() {
+            base.cloned()
+        } else {
+            Some(self.ensure_in(base, parent_path)?)
+        };
         let text = match last {
             Seg::Keyed(name, key) => format!("{} {}", value::ident(name), value::quote(key)),
             seg => value::ident(seg.name()),
         };
-        self.checkpoint(&path::display(path));
+        self.checkpoint(&edit_key(base, path));
         self.append_inner(parent.as_ref(), &text)
     }
 
@@ -571,6 +642,13 @@ impl Document {
         let text = &self.files[file].text;
         let line_start = text[..offset].rfind('\n').map_or(0, |i| i + 1);
         text[line_start..offset].chars().take_while(|c| c.is_whitespace()).collect()
+    }
+}
+
+fn edit_key(base: Option<&NodeRef>, path: &[Seg]) -> String {
+    match base {
+        Some(b) => format!("{}:{:?}/{}", b.file, b.idx, path::display(path)),
+        None => path::display(path),
     }
 }
 

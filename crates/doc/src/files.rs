@@ -149,6 +149,12 @@ impl Document {
             .collect()
     }
 
+    /// Treats `disk` as the file's saved state, so a newer on-disk version stops being reported
+    /// as changed and the in-memory text counts as unsaved changes on top of it.
+    pub fn mark_saved_as(&mut self, file: usize, disk: String) {
+        self.files[file].saved = disk;
+    }
+
     /// Reloads everything from disk, discarding unsaved changes (undoable).
     pub fn reload(&mut self) -> Result<()> {
         let fresh = Document::load(&self.files[0].path)?;

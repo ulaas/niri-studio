@@ -13,3 +13,6 @@ live.workspace = true
 niri-config.workspace = true
 niri-ipc.workspace = true
 anyhow.workspace = true
+csscolorparser = "0.8"
+regex = "1"
+similar = "2"
