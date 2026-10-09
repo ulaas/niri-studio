@@ -1636,6 +1636,9 @@ dependencies = [
 [[package]]
 name = "niri-studio-schema"
 version = "0.1.0"
+dependencies = [
+ "niri-studio-doc",
+]
 
 [[package]]
 name = "nohash-hasher"
