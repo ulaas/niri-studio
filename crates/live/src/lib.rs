@@ -3,7 +3,6 @@
 //! A background thread follows niri's event stream (windows, workspaces, keyboard layouts and
 //! config reload results); outputs are fetched on demand since they have no event.
 
-use std::process::Command;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -149,34 +148,33 @@ fn fetch_outputs() -> Result<Vec<Output>> {
     }
 }
 
-/// Runs a config-style action (`focus-workspace 3`, `spawn "foot"`) through `niri msg action`,
-/// whose subcommands are spelled like the config's actions. Properties become `--key value`.
+/// Runs a config-style action (`focus-workspace 3`, `spawn "foot"`) over IPC. The arguments are
+/// parsed by niri-ipc's own command-line definition, the same one `niri msg action` uses, whose
+/// subcommands are spelled like the config's actions. Properties become `--key value`.
 pub fn run_action(name: &str, args: &[String], props: &[(String, String)]) -> Result<()> {
-    let mut cmd = Command::new("niri");
-    cmd.args(["msg", "action", name]);
-    for (k, v) in props {
-        cmd.arg(format!("--{k}")).arg(v);
+    match request(Request::Action(parse_action(name, args, props)?))? {
+        Response::Handled => Ok(()),
+        other => bail!("unexpected reply {other:?}"),
     }
-    if !args.is_empty() {
-        cmd.arg("--");
-        cmd.args(args);
-    }
-    let out = cmd.output().context("running `niri msg action`")?;
-    if !out.status.success() {
-        let err = String::from_utf8_lossy(&out.stderr);
-        bail!("{}", err.lines().find(|l| !l.trim().is_empty()).unwrap_or("action failed").trim());
-    }
-    Ok(())
 }
 
-/// The installed niri's `niri validate` verdict for a file on disk.
-pub fn niri_validate(path: &std::path::Path) -> Result<()> {
-    let out = Command::new("niri").arg("validate").arg("-c").arg(path).output()?;
-    if out.status.success() {
-        Ok(())
-    } else {
-        bail!("{}", String::from_utf8_lossy(&out.stderr).trim())
+fn parse_action(name: &str, args: &[String], props: &[(String, String)]) -> Result<niri_ipc::Action> {
+    use clap::Parser as _;
+
+    let mut argv = vec!["action".to_owned(), name.to_owned()];
+    for (k, v) in props {
+        argv.push(format!("--{k}"));
+        argv.push(v.clone());
     }
+    if !args.is_empty() {
+        argv.push("--".into());
+        argv.extend(args.iter().cloned());
+    }
+    let action = niri_ipc::Action::try_parse_from(&argv).map_err(|e| {
+        let msg = e.to_string();
+        anyhow!("{}", msg.lines().next().unwrap_or("invalid action").trim_start_matches("error: "))
+    })?;
+    Ok(action)
 }
 
 /// Asks niri to let the user click a window (Esc cancels). Runs on a thread because niri
@@ -205,5 +203,38 @@ pub fn layer_namespaces() -> Vec<String> {
             v
         }
         _ => Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use niri_ipc::Action;
+
+    use super::parse_action;
+
+    fn s(v: &[&str]) -> Vec<String> {
+        v.iter().map(|x| x.to_string()).collect()
+    }
+
+    #[test]
+    fn parses_config_style_actions() {
+        assert!(matches!(parse_action("close-window", &[], &[]).unwrap(), Action::CloseWindow { .. }));
+        assert!(matches!(
+            parse_action("spawn", &s(&["foot", "-e", "htop"]), &[]).unwrap(),
+            Action::Spawn { command } if command == s(&["foot", "-e", "htop"])
+        ));
+        assert!(matches!(parse_action("spawn-sh", &s(&["a | b"]), &[]).unwrap(), Action::SpawnSh { .. }));
+        assert!(matches!(parse_action("focus-workspace", &s(&["3"]), &[]).unwrap(), Action::FocusWorkspace { .. }));
+        let props = vec![("show-pointer".to_owned(), "false".to_owned())];
+        assert!(matches!(parse_action("screenshot", &[], &props).unwrap(), Action::Screenshot { show_pointer: false, .. }));
+        assert!(parse_action("no-such-action", &[], &[]).is_err());
+    }
+
+    #[test]
+    fn every_catalogued_action_parses() {
+        // Arguments mirror schema's ACTIONS hints.
+        for (name, arg) in [("set-column-width", "+10%"), ("switch-layout", "next"), ("move-window-to-workspace", "2")] {
+            parse_action(name, &s(&[arg]), &[]).unwrap_or_else(|e| panic!("{name}: {e}"));
+        }
     }
 }

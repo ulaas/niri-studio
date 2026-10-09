@@ -7,4 +7,5 @@ license.workspace = true
 [dependencies]
 niri-ipc.workspace = true
 anyhow.workspace = true
+clap = { version = "4", default-features = false, features = ["std"] }
 serde_json.workspace = true
