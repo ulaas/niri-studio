@@ -208,8 +208,13 @@ enum Edit {
 
 /// A color swatch with picker plus a text field accepting any CSS color. Returns the new string.
 pub fn color_field(ui: &mut Ui, id: egui::Id, current: Option<&str>) -> Option<String> {
+    color_field_or(ui, id, current, None)
+}
+
+/// Like [`color_field`]; when unset, the swatch shows `fallback` (niri's effective color).
+pub fn color_field_or(ui: &mut Ui, id: egui::Id, current: Option<&str>, fallback: Option<Color32>) -> Option<String> {
     let parsed = current.and_then(color::parse);
-    let mut c = parsed.unwrap_or(Color32::from_rgb(127, 200, 255));
+    let mut c = parsed.or(fallback).unwrap_or(Color32::from_rgb(127, 200, 255));
     let mut out = None;
     let mut rgba = c.to_srgba_unmultiplied();
     if ui.color_edit_button_srgba_unmultiplied(&mut rgba).changed() {

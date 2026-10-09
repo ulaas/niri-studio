@@ -125,6 +125,11 @@ pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
         if ui.button("➕ New binding").clicked() {
             add_bind(cx, st, &all);
         }
+        if ui.button("⌨ Show hotkey overlay").on_hover_text("niri's overlay, as of the last saved config").clicked() {
+            if let Err(e) = live::run_action("show-hotkey-overlay", &[], &[]) {
+                cx.toasts.error(format!("{e:#}"));
+            }
+        }
     });
     ui.add_space(4.0);
 
@@ -187,11 +192,13 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, b: Bind, counts: &Has
     let (main_key, mods) = parts.split_last().map_or(("", &[][..]), |(k, m)| (*k, m));
     let mut mods: Vec<String> = mods.iter().map(|s| s.to_string()).collect();
     let mut key = main_key.to_owned();
+    let mut key_changed = false;
     ui.horizontal_wrapped(|ui| {
         ui.label("Keys");
         for m in MODIFIERS {
             let mut on = mods.iter().any(|x| x.eq_ignore_ascii_case(m) || (m == "Ctrl" && x.eq_ignore_ascii_case("Control")));
             if ui.toggle_value(&mut on, m).changed() {
+                key_changed = true;
                 mods.retain(|x| !(x.eq_ignore_ascii_case(m) || (m == "Ctrl" && x.eq_ignore_ascii_case("Control"))));
                 if on {
                     mods.push(m.to_owned());
@@ -199,7 +206,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, b: Bind, counts: &Has
             }
         }
         ui.label("+");
-        ui.add(egui::TextEdit::singleline(&mut key).desired_width(110.0).font(egui::TextStyle::Monospace));
+        key_changed |= ui.add(egui::TextEdit::singleline(&mut key).desired_width(110.0).font(egui::TextStyle::Monospace)).changed();
         let rec = if st.recording { "⏺ press a key… (Esc cancels)" } else { "⏺ Record" };
         if ui.toggle_value(&mut st.recording, rec).on_hover_text("Press the key to bind. Ctrl/Alt/Shift held while pressing are captured; toggle Mod/Super above").changed() {}
     });
@@ -215,6 +222,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, b: Bind, counts: &Has
                 st.recording = false;
             } else if let Some(name) = xkb_name(k) {
                 key = name.to_owned();
+                key_changed = true;
                 for (on, n) in [(m.ctrl, "Ctrl"), (m.alt, "Alt"), (m.shift, "Shift")] {
                     if on && !mods.iter().any(|x| x.eq_ignore_ascii_case(n)) {
                         mods.push(n.to_owned());
@@ -224,9 +232,13 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, b: Bind, counts: &Has
             }
         }
     }
-    let order = |m: &String| MODIFIERS.iter().position(|x| x.eq_ignore_ascii_case(m)).unwrap_or(9);
-    mods.sort_by_key(order);
-    nb.key = mods.iter().map(String::as_str).chain([key.as_str()]).collect::<Vec<_>>().join("+");
+    // Only rebuild the combination when the user changed it, so selecting a bind never
+    // rewrites how it's spelled.
+    if key_changed {
+        let order = |m: &String| MODIFIERS.iter().position(|x| x.eq_ignore_ascii_case(m)).unwrap_or(9);
+        mods.sort_by_key(order);
+        nb.key = mods.iter().map(String::as_str).chain([key.as_str()]).collect::<Vec<_>>().join("+");
+    }
     if counts.get(&normalize(&nb.key)).copied().unwrap_or(0) > usize::from(normalize(&nb.key) == normalize(&b.key)) {
         ui.colored_label(ui.visuals().warn_fg_color, "⚠ This combination is already bound elsewhere.");
     }

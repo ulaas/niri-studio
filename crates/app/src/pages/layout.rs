@@ -10,7 +10,7 @@ use crate::{preview, widgets};
 
 pub fn show(ui: &mut egui::Ui, cx: &mut Ctx) {
     widgets::heading(ui, "Layout", "Gaps, struts and how columns are sized. The preview is drawn from niri's own reading of your config.");
-    preview_card(ui, cx);
+    preview_card(ui, cx, true);
     forms::only(ui, cx, Page::Layout, &["Spacing", "Columns"]);
     widgets::card(ui, "Column widths", |ui| {
         ui.weak("Presets cycled by switch-preset-column-width. Proportions are of the screen width.");
@@ -34,7 +34,7 @@ pub fn output_size(cx: &Ctx) -> Option<(f32, f32)> {
         .map(|l| (l.width as f32, l.height as f32))
 }
 
-pub fn preview_card(ui: &mut egui::Ui, cx: &mut Ctx) {
+pub fn preview_card(ui: &mut egui::Ui, cx: &mut Ctx, link_to_appearance: bool) {
     let size = output_size(cx);
     let cfg = cx.cfg;
     widgets::card(ui, "Preview", |ui| {
@@ -48,7 +48,7 @@ pub fn preview_card(ui: &mut egui::Ui, cx: &mut Ctx) {
                 ui.colored_label(ui.visuals().warn_fg_color, "Showing the last valid config.");
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.link("Focus ring, border and shadow →").clicked() {
+                if link_to_appearance && ui.link("Focus ring, border and shadow »").clicked() {
                     *cx.nav = Some(crate::app::Nav::Page(schema::Page::Appearance));
                 }
             });

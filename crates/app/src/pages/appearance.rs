@@ -14,7 +14,7 @@ const INTERP: [&str; 7] = ["srgb", "srgb-linear", "oklab", "oklch shorter hue", 
 
 pub fn show(ui: &mut egui::Ui, cx: &mut Ctx) {
     widgets::heading(ui, "Appearance", "Window decorations, shadows, the cursor and the overview.");
-    layout::preview_card(ui, cx);
+    layout::preview_card(ui, cx, false);
 
     let ring_on = !cx.cfg.layout.focus_ring.off;
     let border_on = !cx.cfg.layout.border.off;
@@ -101,7 +101,8 @@ fn color_or_gradient(ui: &mut egui::Ui, cx: &mut Ctx, base: &str, state: &str, t
         if !has_grad {
             let cur = cx.doc.arg(&color_path).and_then(|v| v.as_str().map(str::to_owned));
             let is_set = cur.is_some();
-            let (new, reset) = widgets::row(ui, "Color", "", is_set, false, |ui| widgets::color_field(ui, id.with("c"), cur.as_deref()));
+            let fallback = effective_color(cx.cfg, base, state);
+            let (new, reset) = widgets::row(ui, "Color", "", is_set, false, |ui| widgets::color_field_or(ui, id.with("c"), cur.as_deref(), fallback));
             let res = if reset {
                 cx.doc.remove_all(&color_path)
             } else if let Some(c) = new {
@@ -198,4 +199,20 @@ fn shadow(ui: &mut egui::Ui, cx: &mut Ctx) {
     f(cx, ui, "draw-behind-window", Kind::Bool, "Draw behind window", "Needed for windows with transparent backgrounds.");
     f(cx, ui, "color", Kind::Color, "Color", "");
     f(cx, ui, "inactive-color", Kind::Color, "Inactive color", "For windows that aren't focused.");
+}
+
+/// niri's effective solid color for a decoration state (its default when unset).
+fn effective_color(cfg: &niri_config::Config, base: &str, state: &str) -> Option<egui::Color32> {
+    let l = &cfg.layout;
+    let (a, i, u) = match base {
+        "layout/focus-ring" => (l.focus_ring.active_color, l.focus_ring.inactive_color, l.focus_ring.urgent_color),
+        "layout/border" => (l.border.active_color, l.border.inactive_color, l.border.urgent_color),
+        _ => return None,
+    };
+    let c = match state {
+        "active" => a,
+        "inactive" => i,
+        _ => u,
+    };
+    Some(crate::color::from_niri(c))
 }
