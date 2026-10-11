@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Regenerates site/assets/shots/*.webp from niri's default config (the copy kept as a test
 # fixture), so no personal config ends up in the images. Needs a running niri session, kitty,
-# ImageMagick and a release build.
+# jq, ImageMagick and a release build.
 # A nested niri window and the app open briefly while it runs.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -23,6 +23,19 @@ for _ in $(seq 50); do
   sleep 0.2
 done
 [ -n "$sock" ] || { echo "nested niri didn't start" >&2; exit 1; }
+# The nested output is as big as its window; float that window at 16:9 so it looks like a monitor.
+nid=
+for _ in $(seq 50); do
+  nid=$(niri msg --json windows | jq -r --argjson pid "$npid" '.[] | select(.pid == $pid) | .id' | head -1)
+  [ -n "$nid" ] && break
+  sleep 0.2
+done
+if [ -n "$nid" ]; then
+  niri msg action move-window-to-floating --id "$nid" >/dev/null
+  niri msg action set-window-width --id "$nid" 1600 >/dev/null
+  niri msg action set-window-height --id "$nid" 900 >/dev/null
+  sleep 0.8
+fi
 for title in Editor Browser; do NIRI_SOCKET=$sock niri msg action spawn -- kitty -d /tmp --title "$title" >/dev/null || true; done
 sleep 1.5
 
