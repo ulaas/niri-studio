@@ -50,6 +50,20 @@ Saved to `~/.config/niri-studio/studio.conf`.
 A rule's name is a `// comment` line directly above it; disabling a rule comments it out
 with KDL's `/-`, so it stays in the file.
 
+## Installing a release
+
+Each [release](https://github.com/ulaas/niri-studio/releases) has a prebuilt x86_64 Linux
+archive, built by GitHub Actions from the tagged commit. It needs only `libxkbcommon` at run time.
+
+```sh
+tar xzf niri-studio-v*-x86_64-linux.tar.gz
+cd niri-studio-v*-x86_64-linux
+./install.sh   # → ~/.local/bin/niri-studio + a desktop entry
+```
+
+To check the download came from this repository's release workflow:
+`gh attestation verify niri-studio-v*-x86_64-linux.tar.gz --repo ulaas/niri-studio`.
+
 ## Building
 
 You need Rust 1.87 or newer, a C toolchain, `pkg-config` and the development files for libinput,
@@ -121,3 +135,16 @@ starts with the sandbox running.
 
 GPL-3.0-or-later, like niri. niri studio is an independent project, not affiliated with niri.
 Security issues: see [SECURITY.md](SECURITY.md).
+
+## Making a release
+
+Bump `version` in `Cargo.toml`, commit, then tag and push the tag:
+
+```sh
+git tag -a v0.2.0 -m "niri studio 0.2.0"
+git push origin v0.2.0
+```
+
+`.github/workflows/release.yml` checks the tag matches `Cargo.toml`, runs the tests, builds the
+binary on Ubuntu 22.04 (for an older glibc baseline), attests it and publishes the release with
+generated notes.
