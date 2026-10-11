@@ -1,0 +1,15 @@
+name: Feature request
+description: A niri option that's missing, or an idea for the app.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What you'd like
+    validations:
+      required: true
+  - type: input
+    id: docs
+    attributes:
+      label: niri documentation link
+      description: For a missing option, the wiki page that describes it.

@@ -1,0 +1,35 @@
+name: Bug report
+description: Something in niri studio doesn't work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what you saw instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: niri studio version
+      description: A release tag, or the commit you built.
+    validations:
+      required: true
+  - type: input
+    id: niri
+    attributes:
+      label: niri version
+      description: Output of `niri --version`.
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant config
+      description: Only the part of your config.kdl that matters. Leave out anything private.
+      render: kdl
