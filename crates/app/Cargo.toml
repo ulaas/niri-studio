@@ -16,6 +16,6 @@ niri-ipc.workspace = true
 anyhow.workspace = true
 csscolorparser = "0.8"
 regex = "1"
-similar = "2"
+similar = "3"
 egui-phosphor = "0.14"
 libc = "0.2"
