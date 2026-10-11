@@ -15,7 +15,7 @@ kdl = { version = "6.7", features = ["v1"] }
 # against, so what it accepts is exactly what that niri accepts.
 niri-config = { git = "https://github.com/niri-wm/niri", rev = "d0cd58ec5ac6b2d41d42478fb4f3cc7c0c687db9" }
 niri-ipc = { git = "https://github.com/niri-wm/niri", rev = "d0cd58ec5ac6b2d41d42478fb4f3cc7c0c687db9", features = ["clap"] }
-miette = "7.6"
+miette = "5.10"
 anyhow = "1"
 serde_json = "1"
 eframe = { version = "0.36", default-features = false, features = ["wgpu", "wayland", "default_fonts"] }
