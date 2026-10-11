@@ -1,0 +1,23 @@
+# cargo-deny policy, checked in CI (advisories, bans, sources).
+
+[graph]
+all-features = false
+
+[advisories]
+version = 2
+yanked = "deny"
+# Unmaintained crates are reported for our own dependencies only; deeper ones are niri's.
+unmaintained = "workspace"
+
+[bans]
+multiple-versions = "allow"
+# The only wildcards are path dependencies on the niri checkout next to this one (niri's own
+# crates included, which we can't mark unpublished); crates.io rejects real wildcards anyway.
+wildcards = "allow"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# niri depends on Smithay from git.
+allow-git = ["https://github.com/Smithay/smithay.git"]

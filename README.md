@@ -1,7 +1,11 @@
 # niri studio
 
+[![CI](https://github.com/ulaas/niri-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/ulaas/niri-studio/actions/workflows/ci.yml)
+
 A Wayland-native visual editor for [niri](https://github.com/niri-wm/niri)'s `config.kdl`,
-written in Rust with egui.
+written in Rust with egui. **[See the tour →](https://ulaas.github.io/niri-studio/)**
+
+![niri studio's Layout page](site/assets/shots/hero.webp)
 
 - **Keeps your file intact.** Edits are spliced into the text; comments, ordering and
   formatting you wrote are never rewritten. Everything written is KDL v1, which niri reads.
@@ -70,3 +74,11 @@ For UI work, `NIRI_STUDIO_SHOT=<Page>=/tmp/x.png niri-studio <config>` renders a
 and exits (`NIRI_STUDIO_SELECT=<n>` preselects an item, `NIRI_STUDIO_SEARCH=<query>` opens
 the search palette, `NIRI_STUDIO_APPEARANCE=1` the appearance panel). `NIRI_STUDIO_SANDBOX=1`
 starts with the sandbox running.
+
+`site/` is the project page, published to GitHub Pages by `.github/workflows/pages.yml`;
+`site/shots.sh` regenerates its screenshots from niri's default config.
+
+## License
+
+GPL-3.0-or-later, like niri. niri studio is an independent project, not affiliated with niri.
+Security issues: see [SECURITY.md](SECURITY.md).

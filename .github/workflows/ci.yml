@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege: jobs only read the repository.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # niri-studio builds against the niri checkout next to it (../niri). Pinned so builds are
+  # reproducible; bump it when niri-studio follows a newer niri.
+  NIRI_REPO: niri-wm/niri
+  NIRI_REV: d0cd58ec5ac6b2d41d42478fb4f3cc7c0c687db9
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: niri-studio
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.NIRI_REPO }}
+          ref: ${{ env.NIRI_REV }}
+          path: niri
+          persist-credentials: false
+      - name: System libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libinput-dev libudev-dev libwayland-dev libxkbcommon-dev xkb-data
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: niri-studio
+      - name: Build
+        working-directory: niri-studio
+        run: cargo build --locked --workspace
+      - name: Test
+        working-directory: niri-studio
+        run: cargo test --locked --workspace
+
+  deny:
+    name: Advisories and sources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: niri-studio
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.NIRI_REPO }}
+          ref: ${{ env.NIRI_REV }}
+          path: niri
+          persist-credentials: false
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          manifest-path: niri-studio/Cargo.toml
+          command: check advisories bans sources
