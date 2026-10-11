@@ -409,7 +409,8 @@ fn style(p: &Palette, s: &Settings) -> egui::Style {
     v.error_fg_color = p.error;
     v.weak_text_color = Some(p.faint);
     v.selection.bg_fill = mix(p.surface, p.accent, if p.dark { 0.42 } else { 0.30 });
-    v.selection.stroke = Stroke::new(1.0, readable(p.accent, v.selection.bg_fill, 3.5));
+    // One accent for text and lines everywhere: selected labels, links, focus, charts.
+    v.selection.stroke = Stroke::new(1.0, readable(p.accent_fg(), v.selection.bg_fill, 3.0));
     v.text_cursor.stroke = Stroke::new(2.0, p.accent_fg());
     v.slider_trailing_fill = true;
     v.handle_shape = egui::style::HandleShape::Circle;

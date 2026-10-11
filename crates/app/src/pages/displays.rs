@@ -101,7 +101,7 @@ fn arrangement(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, outputs: &[Outpu
     let to_screen = |p: egui::Pos2| pos2(p.x * scale + offset.x, p.y * scale + offset.y);
     painter.rect_filled(resp.rect, 8.0, ui.visuals().extreme_bg_color);
 
-    let accent = ui.visuals().selection.stroke.color;
+    let accent = crate::theme::pal(ui.ctx()).accent_fg();
     let mut release: Option<String> = None;
     for (i, (name, r)) in rects.clone().into_iter().enumerate() {
         let sr = Rect::from_min_max(to_screen(r.min), to_screen(r.max));
@@ -262,7 +262,7 @@ fn settings(ui: &mut egui::Ui, cx: &mut Ctx, o: &Output) {
 fn simple_rows(ui: &mut egui::Ui, cx: &mut Ctx, o: &Output) {
     let live_scale = o.logical.map_or(1.0, |l| l.scale);
     let mut scale = live_scale;
-    let (changed, _) = widgets::row(ui, "Scale", "", false, false, |ui| ui.add(egui::Slider::new(&mut scale, 0.5..=4.0)).changed());
+    let (changed, _) = widgets::row(ui, "Scale", "", false, false, |ui| ui.add(widgets::Slider::new(&mut scale, 0.5..=4.0)).changed());
     if changed {
         let r = ensure_output(cx, o).and_then(|n| cx.doc.set_arg_in(Some(&n), &[Seg::Name("scale".into())], Val::Float(scale)));
         if let Err(e) = r {
@@ -280,9 +280,9 @@ fn vrr(ui: &mut egui::Ui, cx: &mut Ctx, o: &Output, node: Option<&NodeRef>) {
     let before = mode;
     widgets::row(ui, "Variable refresh rate", if o.vrr_supported { "" } else { "This output doesn't report VRR support." }, set, false, |ui| {
         ui.add_enabled_ui(o.vrr_supported, |ui| {
-            ui.selectable_value(&mut mode, 0, "Off");
-            ui.selectable_value(&mut mode, 1, "Always");
-            ui.selectable_value(&mut mode, 2, "On demand").on_hover_text("Only for windows with a variable-refresh-rate window rule");
+            if let Some(v) = crate::widgets::segmented(ui, ui.id().with("seg-mode"), Some(&mode), &[(0, "Off"), (1, "Always"), (2, "On demand")], false) {
+                mode = v;
+            }
         });
     });
     if mode != before {

@@ -158,6 +158,225 @@ pub fn keycaps(ui: &Ui, left: egui::Pos2, combo: &str, color: Color32) -> f32 {
     x
 }
 
+/// A checkbox in the app's style: a rounded box filled with the accent and a drawn check when on.
+pub fn checkbox(ui: &mut Ui, on: &mut bool, text: impl Into<egui::WidgetText>) -> egui::Response {
+    let p = theme::pal(ui.ctx());
+    let text = text.into();
+    let galley = text.into_galley(ui, Some(egui::TextWrapMode::Extend), f32::INFINITY, egui::TextStyle::Body);
+    let size = egui::vec2(18.0 + 8.0 + galley.size().x, ui.spacing().interact_size.y.max(galley.size().y));
+    let (rect, mut r) = ui.allocate_exact_size(size, Sense::click());
+    if r.clicked() {
+        *on = !*on;
+        r.mark_changed();
+    }
+    r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, ui.is_enabled(), *on, galley.text()));
+    let t = ui.ctx().animate_bool_responsive(r.id, *on);
+    let bx = egui::Rect::from_center_size(egui::pos2(rect.left() + 9.0, rect.center().y), egui::vec2(18.0, 18.0));
+    let painter = ui.painter();
+    let off_fill = if r.hovered() { p.control_active() } else { p.control_hover() };
+    painter.rect(
+        bx,
+        5.0,
+        color::lerp(off_fill, p.accent, t),
+        egui::Stroke::new(1.0, color::lerp(p.border_strong(), p.accent, t)),
+        egui::StrokeKind::Inside,
+    );
+    if t > 0.0 {
+        // The check draws itself in as the box fills.
+        let a = bx.left_center() + egui::vec2(4.5, 0.5);
+        let b = bx.center_bottom() + egui::vec2(-1.5, -5.0);
+        let c = bx.right_top() + egui::vec2(-4.0, 5.0);
+        let stroke = egui::Stroke::new(2.0, p.on_accent());
+        let first = t.min(0.5) * 2.0;
+        painter.line_segment([a, a + (b - a) * first], stroke);
+        if t > 0.5 {
+            painter.line_segment([b, b + (c - b) * ((t - 0.5) * 2.0)], stroke);
+        }
+    }
+    if r.has_focus() {
+        painter.rect_stroke(bx.expand(2.0), 7.0, egui::Stroke::new(2.0, p.accent.gamma_multiply(0.5)), egui::StrokeKind::Outside);
+    }
+    let color = if ui.is_enabled() { p.text } else { p.faint };
+    painter.galley(egui::pos2(bx.right() + 8.0, rect.center().y - galley.size().y / 2.0), galley, color);
+    r
+}
+
+/// A slider in the app's style: a thin track filled with the accent up to a round knob, and an
+/// editable value beside it. Mirrors the parts of `egui::Slider`'s builder the pages use.
+pub struct Slider<'a, N: egui::emath::Numeric> {
+    value: &'a mut N,
+    range: std::ops::RangeInclusive<N>,
+    suffix: String,
+    max_decimals: Option<usize>,
+    fixed_decimals: Option<usize>,
+    clamp: bool,
+    log: bool,
+}
+
+impl<'a, N: egui::emath::Numeric> Slider<'a, N> {
+    pub fn new(value: &'a mut N, range: std::ops::RangeInclusive<N>) -> Self {
+        Self { value, range, suffix: String::new(), max_decimals: None, fixed_decimals: None, clamp: true, log: false }
+    }
+    pub fn suffix(mut self, s: impl Into<String>) -> Self {
+        self.suffix = s.into();
+        self
+    }
+    pub fn max_decimals(mut self, n: usize) -> Self {
+        self.max_decimals = Some(n);
+        self
+    }
+    pub fn fixed_decimals(mut self, n: usize) -> Self {
+        self.fixed_decimals = Some(n);
+        self
+    }
+    /// `Never` lets the value box take values past the track's range, as niri does.
+    pub fn clamping(mut self, c: egui::SliderClamping) -> Self {
+        self.clamp = !matches!(c, egui::SliderClamping::Never);
+        self
+    }
+    pub fn logarithmic(mut self, on: bool) -> Self {
+        self.log = on;
+        self
+    }
+
+    fn decimals(&self) -> Option<usize> {
+        if N::INTEGRAL { Some(0) } else { self.fixed_decimals.or(self.max_decimals) }
+    }
+}
+
+impl<N: egui::emath::Numeric> egui::Widget for Slider<'_, N> {
+    fn ui(self, ui: &mut Ui) -> egui::Response {
+        let p = theme::pal(ui.ctx());
+        let (min, max) = (self.range.start().to_f64(), self.range.end().to_f64());
+        let log = self.log && min > 0.0 && max > min;
+        let to_t = |v: f64| -> f64 {
+            let t = if log { (v / min).ln() / (max / min).ln() } else { (v - min) / (max - min).max(f64::EPSILON) };
+            t.clamp(0.0, 1.0)
+        };
+        let from_t = |t: f64| -> f64 { if log { min * (max / min).powf(t) } else { min + t * (max - min) } };
+        let decimals = self.decimals();
+        let round = |v: f64| match decimals {
+            Some(d) => {
+                let m = 10f64.powi(d as i32);
+                (v * m).round() / m
+            }
+            None => v,
+        };
+        let mut v = self.value.to_f64();
+
+        let inner = ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 10.0;
+            let size = egui::vec2(ui.spacing().slider_width, ui.spacing().interact_size.y);
+            let (rect, mut r) = ui.allocate_exact_size(size, Sense::click_and_drag());
+            let knob_r = 8.0;
+            let track = egui::Rect::from_center_size(rect.center(), egui::vec2(rect.width() - 2.0 * knob_r, 4.0));
+            if let Some(pos) = r.interact_pointer_pos() {
+                if r.dragged() || r.clicked() {
+                    let t = ((pos.x - track.left()) / track.width()).clamp(0.0, 1.0) as f64;
+                    let nv = round(from_t(t));
+                    if nv != v {
+                        v = nv;
+                        r.mark_changed();
+                    }
+                }
+            }
+            if r.has_focus() {
+                let (left, right) = ui.input(|i| (i.key_pressed(egui::Key::ArrowLeft), i.key_pressed(egui::Key::ArrowRight)));
+                if left || right {
+                    let step = if N::INTEGRAL { 1.0 } else { (max - min) / 100.0 };
+                    let nv = if log {
+                        from_t((to_t(v) + if right { 0.01 } else { -0.01 }).clamp(0.0, 1.0))
+                    } else {
+                        (v + if right { step } else { -step }).clamp(min, max)
+                    };
+                    v = round(nv);
+                    r.mark_changed();
+                }
+            }
+            r.widget_info(|| egui::WidgetInfo::slider(ui.is_enabled(), v, ""));
+
+            let enabled = ui.is_enabled();
+            let t = to_t(v) as f32;
+            let x = egui::lerp(track.left()..=track.right(), t);
+            let hot = ui.ctx().animate_bool_responsive(r.id.with("hot"), enabled && (r.hovered() || r.dragged() || r.has_focus()));
+            let painter = ui.painter();
+            let accent = if enabled { p.accent } else { p.faint };
+            painter.rect_filled(track, 2.0, p.control_active());
+            painter.rect_filled(egui::Rect::from_min_max(track.left_top(), egui::pos2(x, track.bottom())), 2.0, accent);
+            let c = egui::pos2(x, rect.center().y);
+            if hot > 0.0 {
+                painter.circle_filled(c, knob_r + 5.0 * hot, accent.gamma_multiply(0.18 * hot));
+            }
+            painter.circle_filled(c + egui::vec2(0.0, 1.0), knob_r, Color32::from_black_alpha(60));
+            painter.circle(c, knob_r, if p.dark { p.text } else { Color32::WHITE }, egui::Stroke::new(2.0, accent), );
+
+            let mut dv = egui::DragValue::new(&mut v).speed(if log { 0.0 } else { (max - min) / 300.0 }).suffix(self.suffix.clone());
+            if self.clamp {
+                dv = dv.range(min..=max);
+            }
+            if let Some(d) = decimals {
+                dv = if self.fixed_decimals.is_some() || N::INTEGRAL { dv.fixed_decimals(d) } else { dv.max_decimals(d) };
+            }
+            let dr = ui.add_sized([62.0, size.y], dv);
+            r.union(dr)
+        });
+        let mut r = inner.inner;
+        if v != self.value.to_f64() {
+            *self.value = N::from_f64(v);
+            r.mark_changed();
+        }
+        r
+    }
+}
+
+/// A segmented control: options side by side in one pill, the selected one raised on a sliding
+/// highlight. `dim` draws the highlight faintly, for a value that is niri's default rather than
+/// set. Returns the option clicked, if any.
+pub fn segmented<T: PartialEq + Clone>(ui: &mut Ui, id: egui::Id, selected: Option<&T>, options: &[(T, &str)], dim: bool) -> Option<T> {
+    let p = theme::pal(ui.ctx());
+    let font = egui::FontId::proportional(13.5);
+    let pad = 14.0;
+    let h = ui.spacing().interact_size.y;
+    let widths: Vec<f32> = options
+        .iter()
+        .map(|(_, l)| ui.painter().layout_no_wrap((*l).to_owned(), font.clone(), p.text).size().x + 2.0 * pad)
+        .collect();
+    let total = widths.iter().sum::<f32>() + 6.0;
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(total, h), Sense::hover());
+    let radius = ui.visuals().widgets.inactive.corner_radius.nw as f32 + 2.0;
+    ui.painter().rect(rect, radius, p.control, egui::Stroke::new(1.0, theme::mix(p.control, p.border, 0.6)), egui::StrokeKind::Inside);
+
+    let mut x = rect.left() + 3.0;
+    let mut slots = Vec::with_capacity(options.len());
+    for w in &widths {
+        slots.push(egui::Rect::from_min_size(egui::pos2(x, rect.top() + 3.0), egui::vec2(*w, h - 6.0)));
+        x += w;
+    }
+    let sel = selected.and_then(|s| options.iter().position(|(v, _)| v == s));
+    if let Some(i) = sel {
+        let target = slots[i];
+        let left = ui.ctx().animate_value_with_time(id.with("x"), target.left(), 0.16);
+        let width = ui.ctx().animate_value_with_time(id.with("w"), target.width(), 0.16);
+        let hl = egui::Rect::from_min_size(egui::pos2(left, target.top()), egui::vec2(width, target.height()));
+        let fill = if dim { theme::mix(p.control, p.surface, 0.5) } else if p.dark { p.control_active() } else { p.surface };
+        if !dim {
+            ui.painter().rect_filled(hl.translate(egui::vec2(0.0, 1.0)), radius - 2.0, Color32::from_black_alpha(if p.dark { 70 } else { 22 }));
+        }
+        ui.painter().rect_filled(hl, radius - 2.0, fill);
+    }
+    let mut out = None;
+    for (i, ((value, label), slot)) in options.iter().zip(&slots).enumerate() {
+        let r = ui.interact(*slot, id.with(i), Sense::click());
+        let is_sel = sel == Some(i);
+        let color = if is_sel && !dim { p.text } else if r.hovered() { p.text } else { p.muted };
+        ui.painter().text(slot.center(), egui::Align2::CENTER_CENTER, *label, font.clone(), color);
+        if r.clicked() {
+            out = Some(value.clone());
+        }
+    }
+    out
+}
+
 /// An uppercase caption above a group of items.
 pub fn caption(ui: &mut Ui, text: &str) {
     let p = theme::pal(ui.ctx());
@@ -265,7 +484,7 @@ pub fn option_at(
         }
         Kind::Int { min, max } => {
             let mut v = current.as_ref().or(default.as_ref()).and_then(Val::as_i64).unwrap_or(min.max(0).min(max));
-            let r = ui.add(egui::Slider::new(&mut v, min..=max).clamping(egui::SliderClamping::Never));
+            let r = ui.add(Slider::new(&mut v, min..=max).clamping(egui::SliderClamping::Never));
             if r.changed() {
                 result = Some(Edit::Set(Val::Int(v)));
             }
@@ -275,7 +494,7 @@ pub fn option_at(
             let fallback = if (min..=max).contains(&1.0) && max <= 10.0 { 1.0 } else { min.max(0.0) };
             let mut v = current.as_ref().or(default.as_ref()).and_then(Val::as_f64).unwrap_or(fallback);
             let r = ui.add(
-                egui::Slider::new(&mut v, min..=max)
+                Slider::new(&mut v, min..=max)
                     .clamping(egui::SliderClamping::Never)
                     .max_decimals(if max - min > 50.0 { 1 } else { 3 }),
             );
@@ -298,6 +517,16 @@ pub fn option_at(
                 Some(d) => format!("default ({d})"),
                 None => "default".to_owned(),
             };
+            // A few short choices read best side by side; niri's default shows faintly when unset.
+            if values.len() <= 4 && values.iter().map(|v| v.len()).sum::<usize>() <= 36 {
+                let default_value = default.as_ref().and_then(|d| d.as_str().map(str::to_owned));
+                let shown = cur.clone().or(default_value);
+                let options: Vec<(String, &str)> = values.iter().map(|v| ((*v).to_owned(), *v)).collect();
+                if let Some(v) = segmented(ui, id, shown.as_ref(), &options, cur.is_none()) {
+                    result = Some(Edit::Set(Val::str(v)));
+                }
+                unset_note(ui);
+            } else {
             egui::ComboBox::from_id_salt(id)
                 .selected_text(cur.clone().unwrap_or_else(|| default_label.clone()))
                 .show_ui(ui, |ui| {
@@ -310,6 +539,7 @@ pub fn option_at(
                         }
                     }
                 });
+            }
         }
         Kind::Color => {
             let s = current.as_ref().and_then(|v| v.as_str().map(str::to_owned));

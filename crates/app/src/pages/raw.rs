@@ -169,7 +169,7 @@ fn highlight(text: &str, font: &FontId, theme: &crate::theme::Palette, errors: &
             let mut fmt = TextFormat::simple(font.clone(), color);
             if err.is_some() {
                 fmt.background = err_bg;
-                fmt.underline = egui::Stroke::new(1.5, Color32::from_rgb(230, 80, 80));
+                fmt.underline = egui::Stroke::new(1.5, theme.error);
             }
             job.append(&text[start..next_boundary], 0.0, fmt);
             start = next_boundary;

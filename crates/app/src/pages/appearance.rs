@@ -74,8 +74,9 @@ fn color_or_gradient(ui: &mut egui::Ui, cx: &mut Ctx, base: &str, state: &str, t
     ui.horizontal(|ui| {
         ui.add_sized([120.0, 22.0], egui::Label::new(RichText::new(title).strong()));
         let mut grad = has_grad;
-        ui.selectable_value(&mut grad, false, "Solid");
-        ui.selectable_value(&mut grad, true, "Gradient");
+        if let Some(v) = crate::widgets::segmented(ui, ui.id().with("seg-grad"), Some(&grad), &[(false, "Solid"), (true, "Gradient")], false) {
+            grad = v;
+        }
         if grad != has_grad {
             let res = if grad {
                 let from = cx.doc.arg(&color_path).and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_else(|| "#7fc8ff".into());
@@ -127,7 +128,7 @@ fn color_or_gradient(ui: &mut egui::Ui, cx: &mut Ctx, base: &str, state: &str, t
         let angle = cx.doc.prop(&grad_path, "angle").and_then(|v| v.as_i64()).unwrap_or(180);
         let (a, _) = widgets::row(ui, "Angle", "CSS convention: 0° points up, 90° right, 180° down.", true, false, |ui| {
             let mut a = angle;
-            let r = ui.add(egui::Slider::new(&mut a, 0..=360).suffix("°"));
+            let r = ui.add(widgets::Slider::new(&mut a, 0..=360).suffix("°"));
             angle_dial(ui, a as f32);
             r.changed().then_some(a)
         });
@@ -166,7 +167,7 @@ fn angle_dial(ui: &mut egui::Ui, deg: f32) {
     ui.painter().circle_stroke(c, 10.0, stroke);
     let a = deg.to_radians();
     let tip = c + egui::vec2(a.sin(), -a.cos()) * 9.0;
-    ui.painter().arrow(c - (tip - c), (tip - c) * 2.0, egui::Stroke::new(1.5, ui.visuals().selection.stroke.color));
+    ui.painter().arrow(c - (tip - c), (tip - c) * 2.0, egui::Stroke::new(1.5, crate::theme::pal(ui.ctx()).accent_fg()));
 }
 
 fn shadow(ui: &mut egui::Ui, cx: &mut Ctx) {
@@ -187,7 +188,7 @@ fn shadow(ui: &mut egui::Ui, cx: &mut Ctx) {
         let (v, reset) = widgets::row(ui, label, "", cur.is_some(), false, |ui| {
             // niri's defaults: x=0, y=5.
             let mut v = cur.unwrap_or(if key == "y" { 5.0 } else { 0.0 });
-            ui.add(egui::Slider::new(&mut v, -50.0..=50.0).max_decimals(1)).changed().then_some(v)
+            ui.add(widgets::Slider::new(&mut v, -50.0..=50.0).max_decimals(1)).changed().then_some(v)
         });
         if reset {
             let _ = cx.doc.set_prop(&offset, key, None);

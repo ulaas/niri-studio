@@ -175,6 +175,8 @@ opts! {
         "input/touchpad/accel-profile" Enum(ACCEL), "Acceleration profile", "";
         "input/touchpad/scroll-factor" Float { min: 0.0, max: 10.0 }, "Scroll speed", "Multiplier for scroll distance.";
         "input/touchpad/scroll-method" Enum(SCROLL_METHOD), "Scroll method", "";
+        "input/touchpad/scroll-button" Int { min: 0, max: 1000 }, "Scroll button", "Button code for on-button-down scrolling, e.g. 273 (right button).";
+        "input/touchpad/scroll-button-lock" Flag, "Scroll button lock", "The scroll button toggles scrolling instead of being held.";
         "input/touchpad/tap-button-map" Enum(&["left-right-middle", "left-middle-right"]), "Tap button map", "Which buttons one-, two- and three-finger taps press.";
         "input/touchpad/click-method" Enum(&["button-areas", "clickfinger"]), "Click method", "";
         "input/touchpad/left-handed" Flag, "Left-handed", "";
@@ -189,6 +191,8 @@ opts! {
         "input/mouse/accel-profile" Enum(ACCEL), "Acceleration profile", "";
         "input/mouse/scroll-factor" Float { min: 0.0, max: 10.0 }, "Scroll speed", "";
         "input/mouse/scroll-method" Enum(SCROLL_METHOD), "Scroll method", "";
+        "input/mouse/scroll-button" Int { min: 0, max: 1000 }, "Scroll button", "Button code for on-button-down scrolling, e.g. 274 (middle button).";
+        "input/mouse/scroll-button-lock" Flag, "Scroll button lock", "The scroll button toggles scrolling instead of being held.";
         "input/mouse/left-handed" Flag, "Left-handed", "";
         "input/mouse/middle-emulation" Flag, "Middle-click emulation", "";
     }
@@ -199,11 +203,27 @@ opts! {
         "input/trackpoint/accel-profile" Enum(ACCEL), "Acceleration profile", "";
         "input/trackpoint/scroll-method" Enum(SCROLL_METHOD), "Scroll method", "";
         "input/trackpoint/middle-emulation" Flag, "Middle-click emulation", "";
+        "input/trackpoint/left-handed" Flag, "Left-handed", "";
+        "input/trackpoint/scroll-button" Int { min: 0, max: 1000 }, "Scroll button", "Button code for on-button-down scrolling.";
+        "input/trackpoint/scroll-button-lock" Flag, "Scroll button lock", "The scroll button toggles scrolling instead of being held.";
+    }
+    Input "Trackball" {
+        "input/trackball/off" Flag, "Disable trackball", "";
+        "input/trackball/natural-scroll" Flag, "Natural scrolling", "";
+        "input/trackball/accel-speed" Float { min: -1.0, max: 1.0 }, "Pointer speed", "";
+        "input/trackball/accel-profile" Enum(ACCEL), "Acceleration profile", "";
+        "input/trackball/scroll-method" Enum(SCROLL_METHOD), "Scroll method", "";
+        "input/trackball/scroll-button" Int { min: 0, max: 1000 }, "Scroll button", "Button code for on-button-down scrolling.";
+        "input/trackball/scroll-button-lock" Flag, "Scroll button lock", "The scroll button toggles scrolling instead of being held.";
+        "input/trackball/left-handed" Flag, "Left-handed", "";
+        "input/trackball/middle-emulation" Flag, "Middle-click emulation", "";
     }
     Input "Tablet and touch" {
         "input/tablet/off" Flag, "Disable tablet", "";
         "input/tablet/map-to-output" Str, "Map tablet to output", "Output name, e.g. \"eDP-1\".";
         "input/tablet/left-handed" Flag, "Left-handed tablet", "";
+        "input/tablet/map-to-focused-output" Flag, "Map tablet to focused output", "Follow whichever output has focus.";
+        "input/tablet/map-to-focused-window" Flag, "Map tablet to focused window", "Map the tablet's area onto the focused window.";
         "input/touch/off" Flag, "Disable touchscreen", "";
         "input/touch/map-to-output" Str, "Map touchscreen to output", "";
     }
@@ -257,6 +277,10 @@ opts! {
     Appearance "Overview" {
         "overview/zoom" Float { min: 0.0001, max: 0.75 }, "Overview zoom", "";
         "overview/backdrop-color" Color, "Overview backdrop", "";
+        "overview/workspace-shadow/off" Flag, "Hide workspace shadow", "The shadow under each workspace in the overview.";
+        "overview/workspace-shadow/softness" Float { min: 0.0, max: 1024.0 }, "Workspace shadow softness", "Blur radius, in logical pixels.";
+        "overview/workspace-shadow/spread" Float { min: -1024.0, max: 1024.0 }, "Workspace shadow spread", "";
+        "overview/workspace-shadow/color" Color, "Workspace shadow color", "";
     }
     Appearance "Blur" {
         "blur/off" Flag, "Disable blur", "";
@@ -312,6 +336,29 @@ opts! {
         "hotkey-overlay/hide-not-bound" Flag, "Hide unbound actions in the overlay", "";
         "config-notification/disable-failed" Flag, "Don't notify about config errors", "";
         "clipboard/disable-primary" Flag, "Disable primary selection", "Middle-click paste.";
+    }
+    Misc "Debug" {
+        "debug/preview-render" Enum(&["screencast", "screen-capture"]), "Preview render", "Render monitors as a screencast or screen capture would see them.";
+        "debug/render-drm-device" Path, "Render DRM device", "e.g. /dev/dri/renderD129.";
+        "debug/enable-overlay-planes" Flag, "Enable overlay planes", "";
+        "debug/disable-cursor-plane" Flag, "Disable cursor plane", "";
+        "debug/disable-direct-scanout" Flag, "Disable direct scanout", "";
+        "debug/restrict-primary-scanout-to-matching-format" Flag, "Restrict primary scanout format", "";
+        "debug/wait-for-frame-completion-before-queueing" Flag, "Wait for frame completion", "";
+        "debug/disable-10bit-output" Flag, "Disable 10-bit output", "";
+        "debug/force-disable-connectors-on-resume" Flag, "Force-disable connectors on resume", "";
+        "debug/keep-laptop-panel-on-when-lid-is-closed" Flag, "Keep panel on with lid closed", "";
+        "debug/disable-monitor-names" Flag, "Disable monitor names", "";
+        "debug/emulate-zero-presentation-time" Flag, "Emulate zero presentation time", "";
+        "debug/skip-cursor-only-updates-during-vrr" Flag, "Skip cursor-only updates during VRR", "";
+        "debug/disable-resize-throttling" Flag, "Disable resize throttling", "";
+        "debug/disable-transactions" Flag, "Disable transactions", "";
+        "debug/strict-new-window-focus-policy" Flag, "Strict new-window focus policy", "Only focus new windows that ask with a valid activation token.";
+        "debug/honor-xdg-activation-with-invalid-serial" Flag, "Honor activation with invalid serial", "";
+        "debug/deactivate-unfocused-windows" Flag, "Deactivate unfocused windows", "";
+        "debug/force-pipewire-invalid-modifier" Flag, "Force PipeWire invalid modifier", "";
+        "debug/disable-pipewire-dmabuf" Flag, "Disable PipeWire dmabuf", "";
+        "debug/dbus-interfaces-in-non-session-instances" Flag, "D-Bus in non-session instances", "";
     }
 }
 
@@ -444,6 +491,7 @@ pub type RuleProp = (&'static str, Kind, &'static str, &'static str);
 pub static WINDOW_RULE_PROPS: &[RuleProp] = &[
     ("open-floating", Kind::Bool, "Open floating", ""),
     ("open-maximized", Kind::Bool, "Open maximized", ""),
+    ("pinch-sensitivity", Kind::Float { min: 0.0, max: 10.0 }, "Pinch sensitivity", "Multiplier for touchpad pinch gestures in this window."),
     ("open-maximized-to-edges", Kind::Bool, "Open maximized to edges", "Fill the screen, ignoring gaps and struts."),
     ("open-fullscreen", Kind::Bool, "Open fullscreen", ""),
     ("open-focused", Kind::Bool, "Focus when opened", "Off keeps new windows from stealing focus."),

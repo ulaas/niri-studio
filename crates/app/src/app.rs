@@ -382,7 +382,8 @@ impl App {
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.spacing_mut().item_spacing.x = 6.0;
-                if self.theme.custom_titlebar {
+                // niri never draws title bars, so there the window always needs our controls.
+                if self.theme.custom_titlebar || std::env::var_os("NIRI_SOCKET").is_some() {
                     window_controls(ui, &p, maximized);
                     ui.add_space(4.0);
                     ui.add(egui::Separator::default().vertical().spacing(8.0));
@@ -514,8 +515,7 @@ impl App {
                     if ui.add_enabled(sb.ready(), egui::Button::new(format!("{} Open {term}", icons::TERMINAL_WINDOW))).clicked() {
                         spawn = Some(sb.terminal.clone());
                     }
-                    if ui
-                        .checkbox(&mut sb.startup, "Run startup programs")
+                    if widgets::checkbox(ui, &mut sb.startup, "Run startup programs")
                         .on_hover_text("Also start spawn-at-startup programs in the sandbox. Bars and daemons may start twice.")
                         .changed()
                     {
@@ -855,17 +855,17 @@ impl App {
                 ui.add_space(10.0);
                 widgets::caption(ui, "Accent color");
                 ui.horizontal(|ui| {
-                    let focus = matches!(self.theme.accent, theme::Accent::FocusRing);
-                    let preset = matches!(self.theme.accent, theme::Accent::Theme);
-                    let custom = matches!(self.theme.accent, theme::Accent::Custom(_));
-                    if ui.selectable_label(focus, "Focus ring").on_hover_text("Match niri's focus ring color").clicked() {
-                        self.theme.accent = theme::Accent::FocusRing;
-                    }
-                    if ui.selectable_label(preset, "Theme").clicked() {
-                        self.theme.accent = theme::Accent::Theme;
-                    }
-                    if ui.selectable_label(custom, "Custom").clicked() && !custom {
-                        self.theme.accent = theme::Accent::Custom(p.accent);
+                    let kind = match self.theme.accent {
+                        theme::Accent::FocusRing => 0,
+                        theme::Accent::Theme => 1,
+                        theme::Accent::Custom(_) => 2,
+                    };
+                    let options = [(0, "Focus ring"), (1, "Theme"), (2, "Custom")];
+                    match widgets::segmented(ui, egui::Id::new("accent-kind"), Some(&kind), &options, false) {
+                        Some(0) => self.theme.accent = theme::Accent::FocusRing,
+                        Some(1) => self.theme.accent = theme::Accent::Theme,
+                        Some(2) if kind != 2 => self.theme.accent = theme::Accent::Custom(p.accent),
+                        _ => {}
                     }
                     if let theme::Accent::Custom(c) = &mut self.theme.accent {
                         egui::color_picker::color_edit_button_srgba(ui, c, egui::color_picker::Alpha::Opaque);
@@ -874,12 +874,13 @@ impl App {
                 ui.add_space(8.0);
                 widgets::caption(ui, "Density");
                 ui.horizontal(|ui| {
-                    ui.selectable_value(&mut self.theme.density, theme::Density::Comfortable, "Comfortable");
-                    ui.selectable_value(&mut self.theme.density, theme::Density::Compact, "Compact");
+                    if let Some(v) = crate::widgets::segmented(ui, ui.id().with("seg-density"), Some(&self.theme.density), &[(theme::Density::Comfortable, "Comfortable"), (theme::Density::Compact, "Compact")], false) {
+                        self.theme.density = v;
+                    }
                 });
                 ui.add_space(8.0);
                 widgets::caption(ui, "Corner radius");
-                ui.add(egui::Slider::new(&mut self.theme.radius, 0..=14).suffix(" px"));
+                ui.add(widgets::Slider::new(&mut self.theme.radius, 0..=14).suffix(" px"));
                 ui.add_space(8.0);
                 ui.horizontal(|ui| {
                     if widgets::switch(ui, &mut self.theme.system_font).changed() {

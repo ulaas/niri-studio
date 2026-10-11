@@ -5,7 +5,7 @@
 use std::time::Instant;
 
 use doc::{p, Seg, Val};
-use egui::{pos2, vec2, Color32, Pos2, Rect, RichText, Sense, Stroke, StrokeKind};
+use egui::{pos2, vec2, Pos2, Rect, RichText, Sense, Stroke, StrokeKind};
 use niri_config::animations::{Animation, Curve, Kind as AnimKind};
 use schema::Page;
 
@@ -109,8 +109,9 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, key: &str, slowdown: 
     let is_spring = matches!(anim.kind, AnimKind::Spring(_));
     let mut want_spring = is_spring;
     ui.horizontal(|ui| {
-        ui.selectable_value(&mut want_spring, true, "Spring");
-        ui.selectable_value(&mut want_spring, false, "Easing");
+        if let Some(v) = crate::widgets::segmented(ui, ui.id().with("seg-want_spring"), Some(&want_spring), &[(true, "Spring"), (false, "Easing")], false) {
+            want_spring = v;
+        }
     });
     if want_spring != is_spring {
         let res = if want_spring {
@@ -140,17 +141,17 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, key: &str, slowdown: 
             let mut eps = sp.epsilon;
             let mut changed = None;
             row(ui, "Damping ratio", "Below 1 bounces; 1 settles fastest without bouncing.", |ui| {
-                if ui.add(egui::Slider::new(&mut d, 0.1..=10.0).logarithmic(true).max_decimals(2)).changed() {
+                if ui.add(widgets::Slider::new(&mut d, 0.1..=10.0).logarithmic(true).max_decimals(2)).changed() {
                     changed = Some(("damping-ratio", Val::Float((d * 100.0).round() / 100.0)));
                 }
             });
             row(ui, "Stiffness", "Higher is faster.", |ui| {
-                if ui.add(egui::Slider::new(&mut k, 1.0..=5000.0).logarithmic(true).max_decimals(0)).changed() {
+                if ui.add(widgets::Slider::new(&mut k, 1.0..=5000.0).logarithmic(true).max_decimals(0)).changed() {
                     changed = Some(("stiffness", Val::Int(k.round() as i64)));
                 }
             });
             row(ui, "Epsilon", "Lower if the animation jumps at the end.", |ui| {
-                if ui.add(egui::Slider::new(&mut eps, 0.00001..=0.1).logarithmic(true).max_decimals(5)).changed() {
+                if ui.add(widgets::Slider::new(&mut eps, 0.00001..=0.1).logarithmic(true).max_decimals(5)).changed() {
                     changed = Some(("epsilon", Val::Float(eps)));
                 }
             });
@@ -168,7 +169,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, key: &str, slowdown: 
             let mut ms = e.duration_ms as i64;
             let mut dur_changed = false;
             row(ui, "Duration", "", |ui| {
-                dur_changed = ui.add(egui::Slider::new(&mut ms, 0..=2000).suffix(" ms")).changed();
+                dur_changed = ui.add(widgets::Slider::new(&mut ms, 0..=2000).suffix(" ms")).changed();
             });
             if dur_changed {
                 let _ = cx.doc.set_arg(&child(&base, "duration-ms"), Val::Int(ms));
@@ -342,7 +343,7 @@ fn plot(ui: &mut egui::Ui, anim: &Animation, duration: Option<f64>) -> Option<[f
         painter.text(pos2(x + 4.0, r.top() + 6.0), egui::Align2::LEFT_TOP, format!("{:.0} ms", d * 1000.0), egui::FontId::proportional(11.0), vis.weak_text_color());
     }
     let pts: Vec<Pos2> = samples.iter().map(|(t, y)| to_screen(*t, *y)).collect();
-    painter.add(egui::Shape::line(pts, Stroke::new(2.5, vis.selection.stroke.color)));
+    painter.add(egui::Shape::line(pts, Stroke::new(2.5, crate::theme::pal(ui.ctx()).accent_fg())));
     if ymax > 1.0001 {
         painter.text(to_screen(0.0, ymax) + vec2(4.0, -2.0), egui::Align2::LEFT_BOTTOM, format!("overshoot {:.1}%", (ymax - 1.0) * 100.0), egui::FontId::proportional(11.0), vis.warn_fg_color);
     }
@@ -363,8 +364,9 @@ fn plot(ui: &mut egui::Ui, anim: &Animation, duration: Option<f64>) -> Option<[f
         painter.line_segment([anchor, p], Stroke::new(1.0, vis.text_color()));
         let id = resp.id.with(("handle", i));
         let hr = ui.interact(Rect::from_center_size(p, vec2(14.0, 14.0)), id, Sense::drag());
-        let color = if hr.hovered() || hr.dragged() { vis.selection.stroke.color } else { vis.text_color() };
-        painter.circle(p, 5.0, color, Stroke::new(1.0, Color32::BLACK));
+        let t = crate::theme::pal(ui.ctx());
+        let color = if hr.hovered() || hr.dragged() { t.accent_fg() } else { t.text };
+        painter.circle(p, 5.0, color, Stroke::new(1.5, t.surface));
         if hr.dragged() {
             if let Some(pos) = hr.interact_pointer_pos() {
                 let (nx, ny) = from_screen(pos);
@@ -394,7 +396,8 @@ fn demo(ui: &mut egui::Ui, st: &mut State, anim: &Animation, duration: Option<f6
     let x1 = r.right() - 12.0 - w;
     let x = x0 + (x1 - x0) * v;
     let win = Rect::from_min_size(pos2(x, r.top() + 12.0), vec2(w, r.height() - 24.0));
-    painter.rect_filled(win, 6.0, ui.visuals().selection.bg_fill);
-    painter.rect_stroke(win, 6.0, Stroke::new(2.0, ui.visuals().selection.stroke.color), StrokeKind::Inside);
+    let t = crate::theme::pal(ui.ctx());
+    painter.rect_filled(win, 6.0, t.tint(t.accent, 0.25));
+    painter.rect_stroke(win, 6.0, Stroke::new(2.0, t.accent), StrokeKind::Inside);
     ui.ctx().request_repaint();
 }

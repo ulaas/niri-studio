@@ -304,7 +304,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, b: Bind, counts: &Has
     flag(&mut nb, ui, "allow-inhibiting", "Apps can inhibit it", true, "Off keeps it working in VMs and remote desktops that grab the keyboard.");
     let mut cooldown = nb.prop("cooldown-ms").and_then(Val::as_i64).unwrap_or(0);
     let (changed, _) = widgets::row(ui, "Cooldown (ms)", "Ignore repeats within this time; useful for wheel binds.", nb.prop("cooldown-ms").is_some(), false, |ui| {
-        ui.add(egui::Slider::new(&mut cooldown, 0..=2000)).changed()
+        ui.add(widgets::Slider::new(&mut cooldown, 0..=2000)).changed()
     });
     if changed {
         nb.set_prop("cooldown-ms", (cooldown > 0).then_some(Val::Int(cooldown)));

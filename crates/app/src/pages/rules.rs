@@ -4,7 +4,7 @@
 use std::sync::mpsc::Receiver;
 
 use doc::{Disabled, NodeRef, Seg, Val};
-use egui::{Color32, RichText};
+use egui::RichText;
 use niri_ipc::Window;
 use regex::Regex;
 use schema::{Kind, RuleProp};
@@ -92,8 +92,9 @@ fn entries(cx: &Ctx, tab: Tab) -> Vec<(usize, usize, Entry)> {
 pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
     widgets::heading(ui, "Window rules", "Rules apply in order; later rules override earlier ones for the same property.");
     ui.horizontal(|ui| {
-        ui.selectable_value(&mut st.tab, Tab::Window, "Window rules");
-        ui.selectable_value(&mut st.tab, Tab::Layer, "Layer rules (bars, launchers…)");
+        if let Some(v) = crate::widgets::segmented(ui, ui.id().with("seg-tab"), Some(&st.tab), &[(Tab::Window, "Window rules"), (Tab::Layer, "Layer rules (bars, launchers…)")], false) {
+            st.tab = v;
+        }
     });
     poll_pick(cx, st);
 
@@ -168,7 +169,7 @@ fn quick_rules(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
                 }
             }
         });
-        ui.checkbox(&mut st.with_title, "Also match the window title (only that exact window)");
+        widgets::checkbox(ui, &mut st.with_title, "Also match the window title (only that exact window)");
     });
 }
 
@@ -371,7 +372,7 @@ fn rule_list(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, list: &[(usize, us
                     if st.tab == Tab::Window {
                         let n = windows.iter().filter(|w| rule_matches(cx, r, w) == Some(true)).count();
                         if n > 0 {
-                            ui.label(RichText::new(format!("{n} open")).small().color(ui.visuals().selection.stroke.color))
+                            ui.label(RichText::new(format!("{n} open")).small().color(crate::theme::pal(ui.ctx()).accent_fg()))
                                 .on_hover_text(format!("Applies to {n} open window{}", crate::app::plural(n)));
                         }
                     }
@@ -503,8 +504,9 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, r: &NodeRef, idx: usi
         egui::Frame::group(ui.style()).show(ui, |ui| {
             ui.horizontal(|ui| {
                 let mut ex = is_ex;
-                ui.selectable_value(&mut ex, false, "match");
-                ui.selectable_value(&mut ex, true, "exclude");
+                if let Some(v) = crate::widgets::segmented(ui, ui.id().with("seg-ex"), Some(&ex), &[(false, "match"), (true, "exclude")], false) {
+                    ex = v;
+                }
                 if ex != is_ex {
                     let text = cx.doc.node_text(m).unwrap_or_default();
                     let rest = text.split_once(char::is_whitespace).map_or("", |(_, r)| r);
@@ -557,7 +559,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, r: &NodeRef, idx: usi
             } else {
                 let at = props.iter().rev().find(|(k, _)| k == "at-startup").and_then(|(_, v)| v.as_bool());
                 let mut on = at == Some(true);
-                if ui.checkbox(&mut on, "only at startup").changed() {
+                if widgets::checkbox(ui, &mut on, "only at startup").changed() {
                     let _ = cx.doc.set_prop_ref(m, "at-startup", on.then_some(Val::Bool(true)), "layer-at-startup");
                 }
             }
@@ -608,7 +610,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, r: &NodeRef, idx: usi
                 ui.label(
                     RichText::new(format!("  {}  —  {}", w.app_id.as_deref().unwrap_or("?"), w.title.as_deref().unwrap_or("")))
                         .small()
-                        .color(Color32::GRAY),
+                        .color(crate::theme::pal(ui.ctx()).faint),
                 );
             }
         }

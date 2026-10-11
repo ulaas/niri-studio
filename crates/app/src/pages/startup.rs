@@ -103,7 +103,7 @@ fn environment(ui: &mut egui::Ui, cx: &mut Ctx) {
             let mut unset = value.is_none();
             let a = ui.add(egui::TextEdit::singleline(&mut n).id(ui.id().with(("env-n", i))).font(egui::TextStyle::Monospace).desired_width(220.0));
             let b = ui.add_enabled(!unset, egui::TextEdit::singleline(&mut v).id(ui.id().with(("env-v", i))).font(egui::TextStyle::Monospace).desired_width(300.0));
-            let c = ui.checkbox(&mut unset, "unset");
+            let c = widgets::checkbox(ui, &mut unset, "unset");
             if widgets::small_icon_button(ui, icons::TRASH, "Remove").clicked() {
                 remove = Some(r.clone());
             }
