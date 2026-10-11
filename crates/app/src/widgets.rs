@@ -5,26 +5,40 @@ use egui::{Color32, RichText, Sense, Ui};
 use schema::{Kind, Opt};
 
 use crate::app::Ctx;
+use crate::theme::{self, icons};
 use crate::color;
 
 const LABEL_WIDTH: f32 = 250.0;
 
 /// A titled card grouping related settings.
 pub fn card<R>(ui: &mut Ui, title: &str, add: impl FnOnce(&mut Ui) -> R) -> R {
-    ui.add_space(4.0);
+    card_frame(ui, |ui| {
+        ui.label(RichText::new(title).strong().size(15.5).color(theme::pal(ui.ctx()).text));
+        ui.add_space(6.0);
+        add(ui)
+    })
+}
+
+/// The card surface without a title: a raised panel with a hairline border and soft shadow.
+pub fn card_frame<R>(ui: &mut Ui, add: impl FnOnce(&mut Ui) -> R) -> R {
+    let p = theme::pal(ui.ctx());
+    let radius = ui.visuals().window_corner_radius;
+    ui.add_space(6.0);
     // Frame margins and stroke sit outside the content; size the content so the whole card fits.
-    let width = (ui.available_width() - 2.0 * 12.0 - 4.0).max(100.0);
-    let r = egui::Frame::group(ui.style())
-        .inner_margin(12.0)
-        .corner_radius(8.0)
+    let margin = 18.0;
+    let width = (ui.available_width() - 2.0 * margin - 4.0).max(100.0);
+    let r = egui::Frame::new()
+        .fill(p.surface)
+        .stroke(egui::Stroke::new(1.0, p.border))
+        .corner_radius(radius)
+        .inner_margin(margin)
+        .shadow(egui::epaint::Shadow { offset: [0, 2], blur: 10, spread: 0, color: Color32::from_black_alpha(if p.dark { 40 } else { 10 }) })
         .show(ui, |ui| {
             ui.set_width(width);
-            ui.label(RichText::new(title).strong().size(15.0));
-            ui.add_space(4.0);
             add(ui)
         })
         .inner;
-    ui.add_space(4.0);
+    ui.add_space(6.0);
     r
 }
 
@@ -39,22 +53,115 @@ pub fn dot(ui: &mut Ui, filled: bool, color: Color32) -> egui::Response {
     r
 }
 
-/// An iOS-style switch.
+/// A toggle switch with a sliding knob.
 pub fn switch(ui: &mut Ui, on: &mut bool) -> egui::Response {
-    let size = egui::vec2(36.0, 20.0);
+    let p = theme::pal(ui.ctx());
+    let size = egui::vec2(38.0, 22.0);
     let (rect, mut r) = ui.allocate_exact_size(size, Sense::click());
     if r.clicked() {
         *on = !*on;
         r.mark_changed();
     }
+    r.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, ui.is_enabled(), *on, ""));
     let t = ui.ctx().animate_bool_responsive(r.id, *on);
-    let v = ui.style().interact_selectable(&r, *on);
     let radius = rect.height() / 2.0;
-    let bg = color::lerp(ui.visuals().widgets.inactive.bg_fill, ui.visuals().selection.bg_fill, t);
-    ui.painter().rect(rect, radius, bg, v.bg_stroke, egui::StrokeKind::Inside);
+    let off = if r.hovered() { p.control_active() } else { p.control_hover() };
+    let bg = color::lerp(off, p.accent, t);
+    let painter = ui.painter();
+    if r.has_focus() {
+        painter.rect_stroke(rect.expand(2.0), radius + 2.0, egui::Stroke::new(2.0, p.accent.gamma_multiply(0.5)), egui::StrokeKind::Outside);
+    }
+    painter.rect_filled(rect, radius, bg);
     let x = egui::lerp((rect.left() + radius)..=(rect.right() - radius), t);
-    ui.painter().circle_filled(egui::pos2(x, rect.center().y), radius - 3.0, v.fg_stroke.color);
+    let c = egui::pos2(x, rect.center().y);
+    painter.circle_filled(c + egui::vec2(0.0, 1.0), radius - 3.0, Color32::from_black_alpha(50));
+    let knob = color::lerp(if p.dark { p.text } else { Color32::WHITE }, p.on_accent(), t);
+    painter.circle_filled(c, radius - 3.0, knob);
     r
+}
+
+/// A borderless button showing a Phosphor icon, with a background on hover.
+pub fn icon_button(ui: &mut Ui, icon: &str, tip: &str) -> egui::Response {
+    let r = ui.add(egui::Button::new(RichText::new(icon).size(16.0)).frame_when_inactive(false).min_size(egui::vec2(30.0, 28.0)));
+    if tip.is_empty() { r } else { r.on_hover_text(tip) }
+}
+
+/// A small icon button, as used for per-row actions.
+pub fn small_icon_button(ui: &mut Ui, icon: &str, tip: &str) -> egui::Response {
+    let p = theme::pal(ui.ctx());
+    ui.add(egui::Button::new(RichText::new(icon).size(14.0).color(p.muted)).frame_when_inactive(false).min_size(egui::vec2(24.0, 22.0)))
+        .on_hover_text(tip)
+}
+
+/// A frameless icon button for use with `add_enabled`.
+pub fn icon_only(icon: &str) -> egui::Button<'_> {
+    egui::Button::new(RichText::new(icon).size(14.0)).frame_when_inactive(false).min_size(egui::vec2(24.0, 22.0))
+}
+
+/// The main call to action: filled with the accent color.
+pub fn primary_button(ui: &mut Ui, enabled: bool, text: impl Into<String>) -> egui::Response {
+    let p = theme::pal(ui.ctx());
+    let text = text.into();
+    let (fill, fg) = if enabled { (p.accent, p.on_accent()) } else { (p.control, p.faint) };
+    ui.add_enabled(enabled, egui::Button::new(RichText::new(text).strong().color(fg)).fill(fill).stroke(egui::Stroke::NONE).min_size(egui::vec2(0.0, 30.0)))
+}
+
+/// A rounded label with a tinted background, e.g. a status or a count.
+pub fn pill(ui: &mut Ui, icon: &str, text: &str, color: Color32) -> egui::Response {
+    let p = theme::pal(ui.ctx());
+    let label = if icon.is_empty() { text.to_owned() } else if text.is_empty() { icon.to_owned() } else { format!("{icon} {text}") };
+    let galley = ui.painter().layout_no_wrap(label, egui::FontId::proportional(12.5), color);
+    let size = galley.size() + egui::vec2(18.0, 8.0);
+    let (rect, r) = ui.allocate_exact_size(size, Sense::click());
+    let fill = p.tint(color, if r.hovered() { 0.22 } else { 0.14 });
+    ui.painter().rect_filled(rect, rect.height() / 2.0, fill);
+    ui.painter().galley(rect.center() - galley.size() / 2.0, galley, color);
+    r
+}
+
+/// A keyboard key cap, e.g. `Ctrl`.
+pub fn kbd(ui: &mut Ui, key: &str) {
+    let p = theme::pal(ui.ctx());
+    let galley = ui.painter().layout_no_wrap(key.to_owned(), egui::FontId::proportional(11.0), p.muted);
+    let size = galley.size() + egui::vec2(10.0, 4.0);
+    let (rect, _) = ui.allocate_exact_size(size, Sense::hover());
+    ui.painter().rect(rect, 4.0, p.control, egui::Stroke::new(1.0, p.border), egui::StrokeKind::Inside);
+    ui.painter().galley(rect.center() - galley.size() / 2.0, galley, p.muted);
+}
+
+/// Background for a clickable list row: tinted when selected, faint on hover.
+pub fn list_row_bg(ui: &Ui, r: &egui::Response, rect: egui::Rect, selected: bool) {
+    let p = theme::pal(ui.ctx());
+    let radius = ui.visuals().widgets.inactive.corner_radius;
+    if selected {
+        ui.painter().rect(rect, radius, p.tint(p.accent, 0.16), egui::Stroke::new(1.0, p.tint(p.accent, 0.45)), egui::StrokeKind::Inside);
+    } else if r.hovered() {
+        ui.painter().rect_filled(rect, radius, theme::mix(p.surface, p.text, 0.045));
+    }
+}
+
+/// Paints a key combination such as `Mod+Shift+T` as key caps starting at `left`; returns the
+/// x coordinate where they end.
+pub fn keycaps(ui: &Ui, left: egui::Pos2, combo: &str, color: Color32) -> f32 {
+    let p = theme::pal(ui.ctx());
+    let painter = ui.painter();
+    let mut x = left.x;
+    for key in combo.split('+').filter(|k| !k.is_empty()) {
+        let galley = painter.layout_no_wrap(key.to_owned(), egui::FontId::monospace(12.0), color);
+        let size = egui::vec2(galley.size().x + 12.0, 20.0);
+        let cap = egui::Rect::from_min_size(egui::pos2(x, left.y - size.y / 2.0), size);
+        painter.rect_filled(cap.translate(egui::vec2(0.0, 1.5)), 4.0, p.border);
+        painter.rect(cap, 4.0, p.control, egui::Stroke::new(1.0, p.border), egui::StrokeKind::Inside);
+        painter.galley(cap.center() - galley.size() / 2.0, galley, color);
+        x = cap.right() + 4.0;
+    }
+    x
+}
+
+/// An uppercase caption above a group of items.
+pub fn caption(ui: &mut Ui, text: &str) {
+    let p = theme::pal(ui.ctx());
+    ui.label(RichText::new(text.to_uppercase()).size(10.5).strong().color(p.faint).extra_letter_spacing(0.8));
 }
 
 /// Row layout: label on the left (with help on hover), control on the right, reset at the end.
@@ -67,13 +174,15 @@ pub fn row<R>(
     control: impl FnOnce(&mut Ui) -> R,
 ) -> (R, bool) {
     let mut reset = false;
+    let bg = ui.painter().add(egui::Shape::Noop);
     let inner = ui
         .horizontal(|ui| {
-            let (rect, _) = ui.allocate_exact_size(egui::vec2(LABEL_WIDTH, 22.0), Sense::hover());
+            let label_width = LABEL_WIDTH.min(ui.available_width() * 0.4);
+            let (rect, _) = ui.allocate_exact_size(egui::vec2(label_width, ui.spacing().interact_size.y), Sense::hover());
             let text = if is_set { RichText::new(label) } else { RichText::new(label).weak() };
             let mut child = ui.new_child(egui::UiBuilder::new().max_rect(rect).layout(egui::Layout::left_to_right(egui::Align::Center)));
             if is_set {
-                let c = child.visuals().selection.stroke.color;
+                let c = theme::pal(child.ctx()).accent_fg();
                 dot(&mut child, true, c).on_hover_text("Set in your config");
             } else {
                 let c = child.visuals().weak_text_color();
@@ -84,16 +193,22 @@ pub fn row<R>(
                 l.on_hover_text(help);
             }
             let out = control(ui);
-            if is_set && ui.small_button("⟲").on_hover_text("Remove from config (back to niri's default)").clicked() {
+            if is_set && small_icon_button(ui, icons::ARROW_COUNTER_CLOCKWISE, "Remove from config (back to niri's default)").clicked() {
                 reset = true;
             }
             out
         });
+    // A faint band behind the hovered row ties the label to its control.
+    let band = inner.response.rect.expand2(egui::vec2(8.0, 2.0));
+    if ui.rect_contains_pointer(band) {
+        let p = theme::pal(ui.ctx());
+        ui.painter().set(bg, egui::Shape::rect_filled(band, 6.0, theme::mix(p.surface, p.text, 0.035)));
+    }
     if highlight {
         ui.painter().rect_stroke(
             inner.response.rect.expand(3.0),
             4.0,
-            egui::Stroke::new(2.0, ui.visuals().selection.stroke.color),
+            egui::Stroke::new(2.0, theme::pal(ui.ctx()).accent_fg()),
             egui::StrokeKind::Outside,
         );
         inner.response.scroll_to_me(Some(egui::Align::Center));
@@ -265,19 +380,21 @@ pub fn color_field_or(ui: &mut Ui, id: egui::Id, current: Option<&str>, fallback
         ui.data_mut(|d| d.remove::<String>(id));
     }
     if current.is_some() && parsed.is_none() {
-        ui.colored_label(ui.visuals().warn_fg_color, "⚠").on_hover_text("Not a color niri understands");
+        ui.colored_label(ui.visuals().warn_fg_color, icons::WARNING).on_hover_text("Not a color niri understands");
     }
     out
 }
 
 /// Page heading with an optional subtitle.
 pub fn heading(ui: &mut Ui, title: &str, subtitle: &str) {
-    ui.add_space(2.0);
-    ui.label(RichText::new(title).size(22.0).strong());
+    let p = theme::pal(ui.ctx());
+    ui.add_space(10.0);
+    ui.label(RichText::new(title).size(26.0).strong().color(p.text));
     if !subtitle.is_empty() {
-        ui.weak(subtitle);
+        ui.add_space(2.0);
+        ui.label(RichText::new(subtitle).size(14.0).color(p.muted));
     }
-    ui.add_space(6.0);
+    ui.add_space(10.0);
 }
 
 /// Splits a command line into arguments, honoring single and double quotes and backslashes.

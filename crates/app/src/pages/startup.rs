@@ -4,6 +4,7 @@ use doc::{NodeRef, Seg, Val};
 use egui::RichText;
 use schema::Page;
 
+use crate::theme::icons;
 use crate::app::Ctx;
 use crate::pages::forms;
 use crate::widgets;
@@ -45,13 +46,13 @@ fn spawn_list(ui: &mut egui::Ui, cx: &mut Ctx, name: &str, shell: bool) {
                 };
                 edit = Some((r.clone(), text));
             }
-            if ui.small_button("▶").on_hover_text("Run it now through niri").clicked() {
+            if widgets::small_icon_button(ui, icons::PLAY, "Run it now through niri").clicked() {
                 let (action, args) = if shell { ("spawn-sh", vec![line.clone()]) } else { ("spawn", args.clone()) };
                 if let Err(e) = live::run_action(action, &args, &[]) {
                     cx.toasts.error(format!("{e:#}"));
                 }
             }
-            if ui.small_button("🗑").on_hover_text("Remove").clicked() {
+            if widgets::small_icon_button(ui, icons::TRASH, "Remove").clicked() {
                 remove = Some(r.clone());
             }
         });
@@ -59,7 +60,7 @@ fn spawn_list(ui: &mut egui::Ui, cx: &mut Ctx, name: &str, shell: bool) {
     if nodes.is_empty() {
         ui.weak("Nothing yet.");
     }
-    if ui.button("➕ Add").clicked() {
+    if ui.button(format!("{} Add", icons::PLUS)).clicked() {
         let placeholder = if shell { "\"echo hello\"" } else { "\"program\"" };
         if let Err(e) = cx.doc.append(None, &format!("{name} {placeholder}")) {
             cx.toasts.error(format!("{e:#}"));
@@ -103,7 +104,7 @@ fn environment(ui: &mut egui::Ui, cx: &mut Ctx) {
             let a = ui.add(egui::TextEdit::singleline(&mut n).id(ui.id().with(("env-n", i))).font(egui::TextStyle::Monospace).desired_width(220.0));
             let b = ui.add_enabled(!unset, egui::TextEdit::singleline(&mut v).id(ui.id().with(("env-v", i))).font(egui::TextStyle::Monospace).desired_width(300.0));
             let c = ui.checkbox(&mut unset, "unset");
-            if ui.small_button("🗑").clicked() {
+            if widgets::small_icon_button(ui, icons::TRASH, "Remove").clicked() {
                 remove = Some(r.clone());
             }
             ui.end_row();
@@ -116,7 +117,7 @@ fn environment(ui: &mut egui::Ui, cx: &mut Ctx) {
     if vars.is_empty() {
         ui.label(RichText::new("No variables set.").weak());
     }
-    if ui.button("➕ Add variable").clicked() {
+    if ui.button(format!("{} Add variable", icons::PLUS)).clicked() {
         let res = cx.doc.ensure(&[Seg::Name("environment".into())]).and_then(|e| cx.doc.append(Some(&e), "NEW_VARIABLE \"value\""));
         if let Err(e) = res {
             cx.toasts.error(format!("{e:#}"));

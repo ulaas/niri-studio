@@ -69,10 +69,10 @@ pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
         .collect();
 
     let font = FontId::monospace(13.5);
-    let dark = ui.visuals().dark_mode;
+    let theme = crate::theme::pal(ui.ctx());
     let err_bg = ui.visuals().error_fg_color.gamma_multiply(0.25);
     let mut layouter = |ui: &egui::Ui, text: &dyn TextBuffer, _wrap: f32| -> Arc<egui::Galley> {
-        let mut job = highlight(text.as_str(), &font, dark, &errors, err_bg);
+        let mut job = highlight(text.as_str(), &font, &theme, &errors, err_bg);
         job.wrap.max_width = f32::INFINITY;
         ui.fonts_mut(|f| f.layout_job(job))
     };
@@ -134,35 +134,23 @@ struct Palette {
     punct: Color32,
 }
 
-fn palette(dark: bool) -> Palette {
-    if dark {
-        Palette {
-            text: Color32::from_rgb(220, 220, 220),
-            comment: Color32::from_rgb(120, 130, 140),
-            string: Color32::from_rgb(160, 210, 130),
-            number: Color32::from_rgb(240, 170, 100),
-            node: Color32::from_rgb(120, 180, 250),
-            prop: Color32::from_rgb(200, 150, 240),
-            keyword: Color32::from_rgb(240, 120, 140),
-            punct: Color32::from_rgb(150, 150, 150),
-        }
-    } else {
-        Palette {
-            text: Color32::from_rgb(30, 30, 30),
-            comment: Color32::from_rgb(120, 120, 120),
-            string: Color32::from_rgb(40, 120, 30),
-            number: Color32::from_rgb(170, 90, 0),
-            node: Color32::from_rgb(20, 80, 180),
-            prop: Color32::from_rgb(130, 40, 160),
-            keyword: Color32::from_rgb(180, 30, 60),
-            punct: Color32::from_rgb(110, 110, 110),
-        }
+/// Syntax colors from the app theme.
+fn palette(t: &crate::theme::Palette) -> Palette {
+    Palette {
+        text: t.text,
+        comment: t.faint,
+        string: crate::theme::readable(t.ok, t.bg, 3.0),
+        number: crate::theme::readable(t.warn, t.bg, 3.0),
+        node: t.blue,
+        prop: t.purple,
+        keyword: t.error,
+        punct: t.muted,
     }
 }
 
 /// A forgiving KDL v1 highlighter (it never fails, even on broken input).
-fn highlight(text: &str, font: &FontId, dark: bool, errors: &[(Range<usize>, String)], err_bg: Color32) -> LayoutJob {
-    let pal = palette(dark);
+fn highlight(text: &str, font: &FontId, theme: &crate::theme::Palette, errors: &[(Range<usize>, String)], err_bg: Color32) -> LayoutJob {
+    let pal = palette(theme);
     let mut job = LayoutJob::default();
     let bytes = text.as_bytes();
     let mut i = 0;

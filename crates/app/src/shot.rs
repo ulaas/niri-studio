@@ -1,5 +1,7 @@
 //! Developer aid: `NIRI_STUDIO_SHOT=Layout=/tmp/x.png niri-studio` renders that page, saves a
 //! screenshot of the window and exits. Used to check the UI without a screenshot tool.
+//! `NIRI_STUDIO_SEARCH=query` opens the search palette and `NIRI_STUDIO_APPEARANCE=1` the
+//! appearance panel for the shot.
 
 use std::io::Write as _;
 use std::path::PathBuf;

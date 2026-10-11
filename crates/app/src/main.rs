@@ -2,7 +2,9 @@ mod app;
 mod color;
 mod pages;
 mod preview;
+mod sandbox;
 mod shot;
+mod theme;
 mod widgets;
 mod xkb;
 
@@ -18,10 +20,12 @@ fn main() -> eframe::Result {
         None => doc::Document::default_path(),
     };
 
+    let custom_titlebar = theme::Settings::load().custom_titlebar;
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_app_id("niri-studio")
             .with_title("niri studio")
+            .with_decorations(!custom_titlebar)
             .with_inner_size([1280.0, 840.0])
             .with_min_inner_size([720.0, 480.0]),
         ..Default::default()

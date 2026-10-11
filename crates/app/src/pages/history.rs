@@ -1,9 +1,10 @@
 //! Review unsaved changes and restore earlier saved versions.
 
 use doc::Backup;
-use egui::{Color32, RichText};
+use egui::RichText;
 use similar::{ChangeTag, TextDiff};
 
+use crate::theme::icons;
 use crate::app::Ctx;
 use crate::widgets;
 
@@ -26,7 +27,7 @@ pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
     }
 
     egui::Panel::left("history-list").default_size(280.0).show(ui, |ui| {
-        if ui.button("⟳ Refresh").clicked() {
+        if ui.button(format!("{} Refresh", icons::ARROW_CLOCKWISE)).clicked() {
             st.backups = None;
         }
         ui.add_space(4.0);
@@ -74,7 +75,7 @@ pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
             };
             ui.horizontal(|ui| {
                 ui.label(format!("Changes from this backup to the current editor text ({})", doc::format_time(b.time)));
-                if ui.button("⟲ Restore this version").on_hover_text("Loads it into the editor; save to apply. Undoable.").clicked() {
+                if ui.button(format!("{} Restore this version", icons::ARROW_COUNTER_CLOCKWISE)).on_hover_text("Loads it into the editor; save to apply. Undoable.").clicked() {
                     cx.doc.set_text(fi, old.clone());
                     cx.toasts.info("Backup loaded into the editor. Save to apply it.");
                 }
@@ -87,11 +88,8 @@ pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
 fn diff(ui: &mut egui::Ui, old: &str, new: &str) {
     let d = TextDiff::from_lines(old, new);
     let font = egui::FontId::monospace(13.0);
-    let (add, del) = if ui.visuals().dark_mode {
-        (Color32::from_rgb(130, 210, 140), Color32::from_rgb(240, 120, 120))
-    } else {
-        (Color32::from_rgb(20, 120, 40), Color32::from_rgb(180, 30, 30))
-    };
+    let t = crate::theme::pal(ui.ctx());
+    let (add, del) = (t.ok, t.error);
     egui::ScrollArea::both().id_salt(old.len() ^ new.len()).auto_shrink([false, true]).show(ui, |ui| {
         let mut any = false;
         for group in d.grouped_ops(3) {

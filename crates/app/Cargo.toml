@@ -16,3 +16,5 @@ anyhow.workspace = true
 csscolorparser = "0.8"
 regex = "1"
 similar = "2"
+egui-phosphor = "0.14"
+libc = "0.2"

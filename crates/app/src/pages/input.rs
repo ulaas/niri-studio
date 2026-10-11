@@ -5,6 +5,7 @@ use doc::{p, Seg, Val};
 use egui::RichText;
 use schema::Page;
 
+use crate::theme::icons;
 use crate::app::Ctx;
 use crate::pages::forms;
 use crate::widgets;
@@ -110,13 +111,13 @@ fn layouts(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, cat: &Catalog) {
             let code_text = if variant.is_empty() { code.clone() } else { format!("{code}({variant})") };
             ui.label(RichText::new(code_text).monospace().weak());
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.small_button("✖").on_hover_text("Remove").clicked() {
+                if widgets::small_icon_button(ui, icons::X, "Remove").clicked() {
                     new.remove(i);
                 }
-                if ui.add_enabled(i + 1 < n, egui::Button::new("⏷").small()).on_hover_text("Move down").clicked() {
+                if ui.add_enabled(i + 1 < n, widgets::icon_only(icons::CARET_DOWN)).on_hover_text("Move down").clicked() {
                     new.swap(i, i + 1);
                 }
-                if ui.add_enabled(i > 0, egui::Button::new("⏶").small()).on_hover_text("Move up (first is the default)").clicked() {
+                if ui.add_enabled(i > 0, widgets::icon_only(icons::CARET_UP)).on_hover_text("Move up (first is the default)").clicked() {
                     new.swap(i, i - 1);
                 }
             });
@@ -124,7 +125,7 @@ fn layouts(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, cat: &Catalog) {
     }
 
     ui.add_space(4.0);
-    ui.toggle_value(&mut st.adding, "➕ Add layout");
+    ui.toggle_value(&mut st.adding, format!("{} Add layout", icons::PLUS));
     if st.adding {
         ui.add(egui::TextEdit::singleline(&mut st.query).hint_text("Search: language, country or code (e.g. \"turkish\", \"de\", \"dvorak\")").desired_width(f32::INFINITY));
         egui::ScrollArea::vertical().id_salt("xkb-search").max_height(240.0).show(ui, |ui| {
@@ -236,7 +237,7 @@ fn try_it(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, cat: &Catalog) {
     if !cfg_names.is_empty() && cfg_names != kb.names {
         ui.horizontal(|ui| {
             ui.colored_label(ui.visuals().warn_fg_color, "niri is still running the previous layouts.");
-            if ui.button("💾 Save and apply").clicked() {
+            if ui.button(format!("{} Save and apply", icons::FLOPPY_DISK)).clicked() {
                 *cx.request_save = true;
             }
         });

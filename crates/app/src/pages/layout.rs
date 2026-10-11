@@ -4,6 +4,7 @@ use doc::{p, NodeRef, Val};
 use egui::RichText;
 use schema::Page;
 
+use crate::theme::icons;
 use crate::app::Ctx;
 use crate::pages::forms;
 use crate::{preview, widgets};
@@ -99,16 +100,16 @@ fn presets(ui: &mut egui::Ui, cx: &mut Ctx, name: &str) {
             } else if changed {
                 edit = Some((r.clone(), format!("{kind} {}", fmt(kind, val))));
             }
-            if ui.small_button("✖").on_hover_text("Remove").clicked() {
+            if widgets::small_icon_button(ui, icons::X, "Remove").clicked() {
                 remove = Some(r.clone());
             }
         });
     }
     ui.horizontal(|ui| {
-        if ui.button("➕ Proportion").clicked() {
+        if ui.button(format!("{} Proportion", icons::PLUS)).clicked() {
             add(cx, &path, "proportion 0.5");
         }
-        if ui.button("➕ Fixed width").clicked() {
+        if ui.button(format!("{} Fixed width", icons::PLUS)).clicked() {
             add(cx, &path, "fixed 800");
         }
         if parent.is_some() && ui.button("Reset to niri's presets").clicked() {

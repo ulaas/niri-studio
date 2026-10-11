@@ -137,6 +137,12 @@ pub fn request(req: Request) -> Result<Response> {
     socket.send(req)?.map_err(|e| anyhow!(e))
 }
 
+/// One-shot request to a specific niri instance, e.g. a nested one.
+pub fn request_to(socket: &std::path::Path, req: Request) -> Result<Response> {
+    let mut socket = Socket::connect_to(socket).with_context(|| format!("connecting to {socket:?}"))?;
+    socket.send(req)?.map_err(|e| anyhow!(e))
+}
+
 fn fetch_outputs() -> Result<Vec<Output>> {
     match request(Request::Outputs)? {
         Response::Outputs(map) => {

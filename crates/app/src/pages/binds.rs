@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use doc::{NodeRef, Seg, Val};
 use egui::{Key, RichText};
 
+use crate::theme::icons;
 use crate::app::Ctx;
 use crate::widgets;
 
@@ -108,7 +109,7 @@ fn normalize(key: &str) -> String {
 }
 
 pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
-    widgets::heading(ui, "Key bindings", "Mod is Super normally, and Alt when niri runs nested. Click ▶ to try an action right now.");
+    widgets::heading(ui, "Key bindings", &format!("Mod is Super normally, and Alt when niri runs nested. Click {} to try an action right now.", icons::PLAY));
     let all = binds(cx);
     let mut counts: HashMap<String, usize> = HashMap::new();
     for b in &all {
@@ -120,12 +121,12 @@ pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
         ui.add(egui::TextEdit::singleline(&mut st.filter).hint_text("Filter by key, action or title…").desired_width(320.0));
         ui.weak(format!("{} bindings", all.len()));
         if conflicts > 0 {
-            ui.colored_label(ui.visuals().warn_fg_color, format!("⚠ {conflicts} key combination{} bound more than once", crate::app::plural(conflicts)));
+            ui.colored_label(ui.visuals().warn_fg_color, format!("{} {conflicts} key combination{} bound more than once", icons::WARNING, crate::app::plural(conflicts)));
         }
-        if ui.button("➕ New binding").clicked() {
+        if ui.button(format!("{} New binding", icons::PLUS)).clicked() {
             add_bind(cx, st, &all);
         }
-        if ui.button("⌨ Show hotkey overlay").on_hover_text("niri's overlay, as of the last saved config").clicked() {
+        if ui.button(format!("{} Show hotkey overlay", icons::KEYBOARD)).on_hover_text("niri's overlay, as of the last saved config").clicked() {
             if let Err(e) = live::run_action("show-hotkey-overlay", &[], &[]) {
                 cx.toasts.error(format!("{e:#}"));
             }
@@ -143,21 +144,20 @@ pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
                         continue;
                     }
                     let dup = counts.get(&normalize(&b.key)).copied().unwrap_or(0) > 1;
-                    ui.horizontal(|ui| {
-                        let key = RichText::new(&b.key).monospace().strong();
-                        let key = if dup { key.color(ui.visuals().warn_fg_color) } else { key };
-                        let r = ui.add_sized([170.0, 20.0], egui::Button::selectable(st.selected == Some(i), key));
-                        if dup {
-                            r.clone().on_hover_text("This combination is bound more than once; niri uses the last one.");
-                        }
-                        if r.clicked() {
-                            st.selected = Some(i);
-                            st.recording = false;
-                        }
-                        let room = ui.available_width() - 30.0;
-                        let text = if title.is_empty() { b.summary() } else { title.clone() };
-                        ui.label(widgets::ellipsize(&text, room)).on_hover_text(b.summary());
-                    });
+                    let (rect, r) = ui.allocate_exact_size(egui::vec2(ui.available_width(), 34.0), egui::Sense::click());
+                    widgets::list_row_bg(ui, &r, rect, st.selected == Some(i));
+                    let p = crate::theme::pal(ui.ctx());
+                    let end = widgets::keycaps(ui, rect.left_center() + egui::vec2(8.0, 0.0), &b.key, if dup { p.warn } else { p.text });
+                    let x = end.max(rect.left() + 200.0);
+                    let text = if title.is_empty() { b.summary() } else { title.clone() };
+                    let text = widgets::ellipsize(&text, rect.right() - x - 8.0);
+                    let color = if title.is_empty() { p.muted } else { p.text };
+                    ui.painter().text(egui::pos2(x, rect.center().y), egui::Align2::LEFT_CENTER, text, egui::FontId::proportional(13.5), color);
+                    let r = if dup { r.on_hover_text("This combination is bound more than once; niri uses the last one.") } else { r.on_hover_text(b.summary()) };
+                    if r.clicked() {
+                        st.selected = Some(i);
+                        st.recording = false;
+                    }
                 }
             });
         });
@@ -207,7 +207,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, b: Bind, counts: &Has
         }
         ui.label("+");
         key_changed |= ui.add(egui::TextEdit::singleline(&mut key).desired_width(110.0).font(egui::TextStyle::Monospace)).changed();
-        let rec = if st.recording { "⏺ press a key… (Esc cancels)" } else { "⏺ Record" };
+        let rec = if st.recording { format!("{} press a key… (Esc cancels)", icons::RECORD) } else { format!("{} Record", icons::RECORD) };
         if ui.toggle_value(&mut st.recording, rec).on_hover_text("Press the key to bind. Ctrl/Alt/Shift held while pressing are captured; toggle Mod/Super above").changed() {}
     });
     if st.recording {
@@ -240,7 +240,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, b: Bind, counts: &Has
         nb.key = mods.iter().map(String::as_str).chain([key.as_str()]).collect::<Vec<_>>().join("+");
     }
     if counts.get(&normalize(&nb.key)).copied().unwrap_or(0) > usize::from(normalize(&nb.key) == normalize(&b.key)) {
-        ui.colored_label(ui.visuals().warn_fg_color, "⚠ This combination is already bound elsewhere.");
+        ui.colored_label(ui.visuals().warn_fg_color, format!("{} This combination is already bound elsewhere.", icons::WARNING));
     }
 
     ui.add_space(6.0);
@@ -312,7 +312,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, b: Bind, counts: &Has
 
     ui.add_space(6.0);
     ui.horizontal(|ui| {
-        if ui.button("▶ Run now").on_hover_text("Runs this action in niri right away, without saving").clicked() {
+        if ui.button(format!("{} Run now", icons::PLAY)).on_hover_text("Runs this action in niri right away, without saving").clicked() {
             let args: Vec<String> = nb.args.iter().map(|a| a.as_str().map_or_else(|| a.to_kdl(), str::to_owned)).collect();
             let props: Vec<(String, String)> = nb
                 .action_props

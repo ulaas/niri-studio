@@ -5,6 +5,7 @@ use egui::{pos2, vec2, Rect, RichText, Sense, Stroke, StrokeKind};
 use niri_ipc::Output;
 use schema::Kind;
 
+use crate::theme::icons;
 use crate::app::Ctx;
 use crate::widgets;
 
@@ -58,13 +59,13 @@ pub fn show(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State) {
     ui.horizontal(|ui| {
         let dirty = cx.doc.is_dirty();
         if ui
-            .add_enabled(dirty, egui::Button::new(RichText::new("🖵  Apply display changes…").strong()))
+            .add_enabled(dirty, egui::Button::new(RichText::new(format!("{}  Apply display changes…", icons::MONITOR)).strong()))
             .on_hover_text("Saves the config; you have 15 seconds to keep the result or it reverts")
             .clicked()
         {
             *cx.request_trial = true;
         }
-        if ui.button("⟳ Refresh from niri").clicked() {
+        if ui.button(format!("{} Refresh from niri", icons::ARROW_CLOCKWISE)).clicked() {
             cx.live.refresh_outputs();
         }
     });
@@ -220,7 +221,7 @@ fn settings(ui: &mut egui::Ui, cx: &mut Ctx, o: &Output) {
             }
             for m in &o.modes {
                 let s = mode_string(m);
-                let label = if m.is_preferred { format!("{s}  ★") } else { s.clone() };
+                let label = if m.is_preferred { format!("{s}  {}", icons::STAR) } else { s.clone() };
                 if ui.selectable_label(cur_cfg.as_deref() == Some(&s), label).clicked() {
                     pick = Some(Some(s));
                 }

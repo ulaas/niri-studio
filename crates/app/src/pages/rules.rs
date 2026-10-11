@@ -9,6 +9,7 @@ use niri_ipc::Window;
 use regex::Regex;
 use schema::{Kind, RuleProp};
 
+use crate::theme::icons;
 use crate::app::Ctx;
 use crate::widgets;
 
@@ -304,7 +305,7 @@ fn rule_list(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, list: &[(usize, us
                     st.renaming = None;
                 }
             } else {
-                let room = ui.available_width() - 200.0;
+                let room = ui.available_width() - 230.0;
                 let mut text = RichText::new(widgets::ellipsize(&label, room));
                 if !enabled {
                     text = text.strikethrough().weak();
@@ -319,7 +320,7 @@ fn rule_list(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, list: &[(usize, us
             }
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.small_button("🗑").on_hover_text("Delete").clicked() {
+                if widgets::small_icon_button(ui, icons::TRASH, "Delete").clicked() {
                     action = Some(match e {
                         Entry::On { r, .. } => {
                             let r = r.clone();
@@ -338,28 +339,28 @@ fn rule_list(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, list: &[(usize, us
                         }
                     });
                 }
-                if ui.small_button("✏").on_hover_text("Rename").clicked() {
+                if widgets::small_icon_button(ui, icons::PENCIL_SIMPLE, "Rename").clicked() {
                     st.renaming = Some((sel.clone(), label.clone()));
                 }
                 if let Entry::On { idx, r } = e {
                     let pos = on_refs.iter().position(|x| x == r).unwrap_or(0);
                     let next = on_refs.get(pos + 1).filter(|n| n.file == r.file).cloned();
                     let prev = pos.checked_sub(1).and_then(|p| on_refs.get(p)).filter(|n| n.file == r.file).cloned();
-                    if ui.add_enabled(next.is_some(), egui::Button::new("⏷").small()).on_hover_text("Move down").clicked() {
+                    if ui.add_enabled(next.is_some(), widgets::icon_only(icons::CARET_DOWN)).on_hover_text("Move down").clicked() {
                         let (a, b, i) = (r.clone(), next.clone().unwrap(), *idx);
                         action = Some(Box::new(move |cx: &mut Ctx, st: &mut State| {
                             let _ = cx.doc.swap_blocks(&a, &b);
                             st.selected = Some(Sel::On(i + 1));
                         }));
                     }
-                    if ui.add_enabled(prev.is_some(), egui::Button::new("⏶").small()).on_hover_text("Move up").clicked() {
+                    if ui.add_enabled(prev.is_some(), widgets::icon_only(icons::CARET_UP)).on_hover_text("Move up").clicked() {
                         let (a, b, i) = (r.clone(), prev.clone().unwrap(), *idx);
                         action = Some(Box::new(move |cx: &mut Ctx, st: &mut State| {
                             let _ = cx.doc.swap_blocks(&a, &b);
                             st.selected = Some(Sel::On(i - 1));
                         }));
                     }
-                    if ui.small_button("📋").on_hover_text("Duplicate").clicked() {
+                    if widgets::small_icon_button(ui, icons::COPY, "Duplicate").clicked() {
                         let r = r.clone();
                         action = Some(Box::new(move |cx: &mut Ctx, _| {
                             let text = cx.doc.node_text(&r).unwrap_or_default().to_owned();
@@ -380,7 +381,7 @@ fn rule_list(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, list: &[(usize, us
     }
     ui.add_space(6.0);
     ui.horizontal(|ui| {
-        if ui.button(format!("➕ New {}", st.tab.node())).clicked() {
+        if ui.button(format!("{} New {}", icons::PLUS, st.tab.node())).clicked() {
             let node = st.tab.node();
             action = Some(Box::new(move |cx: &mut Ctx, st: &mut State| {
                 let before = cx.doc.find_all(&[Seg::Name(node.into())]).len();
@@ -510,7 +511,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, r: &NodeRef, idx: usi
                     let _ = cx.doc.replace_node(m, &format!("{} {rest}", if ex { "exclude" } else { "match" }).trim_end());
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.small_button("✖").on_hover_text("Remove this matcher").clicked() {
+                    if widgets::small_icon_button(ui, icons::X, "Remove this matcher").clicked() {
                         remove = Some(m.clone());
                     }
                 });
@@ -566,17 +567,17 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, r: &NodeRef, idx: usi
         let _ = cx.doc.remove(&m);
     }
     ui.horizontal_wrapped(|ui| {
-        if ui.button("➕ match").clicked() {
+        if ui.button(format!("{} match", icons::PLUS)).clicked() {
             let _ = cx.doc.append(Some(r), "match");
         }
-        if ui.button("➕ exclude").clicked() {
+        if ui.button(format!("{} exclude", icons::PLUS)).clicked() {
             let _ = cx.doc.append(Some(r), "exclude");
         }
         if st.tab == Tab::Window && cx.live.state().connected {
-            if ui.button("🖱 Pick a window to match").clicked() {
+            if ui.button(format!("{} Pick a window to match", icons::CURSOR_CLICK)).clicked() {
                 start_pick(cx, st, Purpose::AddMatch { rule: idx, exclude: false });
             }
-            if ui.button("🖱 Pick a window to exclude").clicked() {
+            if ui.button(format!("{} Pick a window to exclude", icons::CURSOR_CLICK)).clicked() {
                 start_pick(cx, st, Purpose::AddMatch { rule: idx, exclude: true });
             }
         }
@@ -624,7 +625,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, r: &NodeRef, idx: usi
         ui.weak("No properties yet.");
     }
     let mut add = None;
-    egui::ComboBox::from_id_salt(("add-prop", idx)).selected_text("➕ Add property").show_ui(ui, |ui| {
+    egui::ComboBox::from_id_salt(("add-prop", idx)).selected_text(format!("{} Add property", icons::PLUS)).show_ui(ui, |ui| {
         for p in props.iter().filter(|p| !set.iter().any(|s| s.0 == p.0)) {
             let r = ui.selectable_label(false, p.2);
             let r = if p.3.is_empty() { r } else { r.on_hover_text(p.3) };

@@ -27,7 +27,21 @@ written in Rust with egui.
 | History | Review unsaved changes, diff and restore earlier saved versions |
 
 Ctrl+K searches every setting; Ctrl+S saves; Ctrl+Z / Ctrl+Shift+Z undo and redo across all
-pages. **⚡ Live** applies each valid change to niri as you make it.
+pages. **Live** applies each valid change to niri as you make it.
+
+**Sandbox** tries your edits before they touch anything: it opens niri nested as a window,
+running a private copy of the config in `$XDG_RUNTIME_DIR`, and mirrors every valid edit into
+it as you make it (unsaved includes too). Your config file and the running session stay
+untouched until you save. Startup programs are left out unless you ask for them, a couple of
+terminals open so layout and decorations have something to show, and inside the window Mod is
+Alt. The nested niri exits with the app.
+
+**Studio appearance** (sidebar) picks the app's own theme: follow the system, Studio
+Dark/Light, Catppuccin, Tokyo Night, Rosé Pine, Nord or Gruvbox; an accent that follows your
+focus ring, the theme's or a custom color; density; corner radius; the desktop's font; and
+whether the app draws its own title bar (drag to move, double-click to maximize, themed window
+controls) or asks the compositor for decorations.
+Saved to `~/.config/niri-studio/studio.conf`.
 
 A rule's name is a `// comment` line directly above it; disabling a rule comments it out
 with KDL's `/-`, so it stays in the file.
@@ -49,7 +63,10 @@ cargo test --workspace  # round-trips real configs; checks every option against 
 - `crates/doc`: format-preserving document model (splices, undo, includes, labels, `/-`), save/backup, validation
 - `crates/schema`: option catalogue, verified against niri's parser in tests
 - `crates/live`: niri IPC (event stream, outputs, window picker, running actions)
-- `crates/app`: the egui application
+- `crates/app`: the egui application (`theme.rs` holds palettes and the style built from
+  them; widgets take colors from `theme::pal` rather than hard-coding them)
 
 For UI work, `NIRI_STUDIO_SHOT=<Page>=/tmp/x.png niri-studio <config>` renders a page to a PNG
-and exits (`NIRI_STUDIO_SELECT=<n>` preselects an item).
+and exits (`NIRI_STUDIO_SELECT=<n>` preselects an item, `NIRI_STUDIO_SEARCH=<query>` opens
+the search palette, `NIRI_STUDIO_APPEARANCE=1` the appearance panel). `NIRI_STUDIO_SANDBOX=1`
+starts with the sandbox running.

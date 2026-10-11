@@ -9,6 +9,7 @@ use egui::{pos2, vec2, Color32, Pos2, Rect, RichText, Sense, Stroke, StrokeKind}
 use niri_config::animations::{Animation, Curve, Kind as AnimKind};
 use schema::Page;
 
+use crate::theme::icons;
 use crate::app::Ctx;
 use crate::pages::forms;
 use crate::widgets;
@@ -100,7 +101,7 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, key: &str, slowdown: 
         if widgets::switch(ui, &mut off).changed() {
             let _ = cx.doc.set_flag(&child(&base, "off"), off);
         }
-        if custom && ui.button("⟲ Reset to niri default").clicked() {
+        if custom && ui.button(format!("{} Reset to niri default", icons::ARROW_COUNTER_CLOCKWISE)).clicked() {
             let _ = cx.doc.remove_all(&base);
         }
     });
