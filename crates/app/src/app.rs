@@ -170,6 +170,7 @@ impl App {
         };
         if let Some(shot) = &app.shot {
             app.page = shot.page;
+            cc.egui_ctx.set_zoom_factor(crate::shot::scale());
             app.appearance_open = std::env::var_os("NIRI_STUDIO_APPEARANCE").is_some();
             if let Ok(q) = std::env::var("NIRI_STUDIO_SEARCH") {
                 app.search_open = true;

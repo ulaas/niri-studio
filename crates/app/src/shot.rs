@@ -1,7 +1,8 @@
 //! Developer aid: `NIRI_STUDIO_SHOT=Layout=/tmp/x.png niri-studio` renders that page, saves a
 //! screenshot of the window and exits. Used to check the UI without a screenshot tool.
 //! `NIRI_STUDIO_SEARCH=query` opens the search palette and `NIRI_STUDIO_APPEARANCE=1` the
-//! appearance panel for the shot.
+//! appearance panel for the shot. `NIRI_STUDIO_SCALE=2` renders it at that many pixels per
+//! point, for crisp images.
 
 use std::io::Write as _;
 use std::path::PathBuf;
@@ -9,6 +10,15 @@ use std::sync::Arc;
 
 use egui::ColorImage;
 use schema::Page;
+
+/// The shot's scale (1 when not taking one).
+pub fn scale() -> f32 {
+    std::env::var_os("NIRI_STUDIO_SHOT")
+        .and_then(|_| std::env::var("NIRI_STUDIO_SCALE").ok())
+        .and_then(|s| s.parse().ok())
+        .filter(|s: &f32| (0.5..=4.0).contains(s))
+        .unwrap_or(1.0)
+}
 
 pub struct Shot {
     pub page: Page,

@@ -26,7 +26,7 @@ fn main() -> eframe::Result {
             .with_app_id("niri-studio")
             .with_title("niri studio")
             .with_decorations(!custom_titlebar)
-            .with_inner_size([1280.0, 840.0])
+            .with_inner_size([1280.0 * shot::scale(), 840.0 * shot::scale()])
             .with_min_inner_size([720.0, 480.0]),
         ..Default::default()
     };

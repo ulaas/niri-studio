@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>niri studio</title>
+  <meta name="description" content="A Wayland-native visual editor for niri's config.kdl. Every option previewed live, validated by niri's own parser, without losing a single comment.">
+  <meta name="theme-color" content="#0b0b10">
+  <meta property="og:title" content="niri studio">
+  <meta property="og:description" content="A visual editor for niri's config: live previews, niri's own validation, a nested sandbox and nine themes.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script src="main.js" defer></script>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"><span></span></div>
+
+  <header class="nav" id="top">
+    <a class="brand" href="#top" aria-label="niri studio, back to top">
+      <img src="assets/mark.svg" alt="" width="28" height="28">
+      <span>niri studio</span>
+    </a>
+    <nav aria-label="Sections">
+      <a href="#features">Features</a>
+      <a href="#tour">Tour</a>
+      <a href="#themes">Themes</a>
+      <a href="#sandbox">Sandbox</a>
+      <a href="#install">Install</a>
+    </nav>
+    <a class="btn btn-ghost btn-sm" href="https://github.com/ulaas/niri-studio" rel="noopener">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+      GitHub
+    </a>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="mesh" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="grid-bg" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <p class="eyebrow reveal"><span class="dot"></span> A visual editor for the niri compositor</p>
+        <h1 class="reveal">Your niri config,<br><span class="gradient-text">beautifully in control.</span></h1>
+        <p class="lead reveal">Every option previewed live, every change checked by niri's own parser, and your comments, ordering and formatting left exactly as you wrote them.</p>
+        <div class="cta reveal">
+          <a class="btn btn-primary magnetic" href="#install">Install it</a>
+          <a class="btn btn-ghost magnetic" href="#tour">Take the tour <span aria-hidden="true">↓</span></a>
+        </div>
+      </div>
+      <div class="hero-stage" data-tilt>
+        <div class="glow" aria-hidden="true"></div>
+        <figure class="window">
+          <div class="window-chrome" aria-hidden="true"><span></span><span></span><span></span></div>
+          <img src="assets/shots/hero.webp" width="1920" height="1260" alt="niri studio's Layout page: a live preview of columns, gaps and the focus ring, with sliders for spacing.">
+        </figure>
+      </div>
+    </section>
+
+    <!-- Key cap marquee -->
+    <section class="marquee" aria-label="Some of what niri studio edits">
+      <div class="track">
+        <span class="kbd">Mod</span><span class="kbd">T</span><em>key bindings</em>
+        <span class="kbd">Mod</span><span class="kbd">Shift</span><span class="kbd">/</span><em>hotkey overlay</em>
+        <em>window rules</em><span class="kbd">Mod</span><span class="kbd">F</span><em>layouts</em>
+        <em>animations</em><em>displays</em><em>gestures</em><em>startup</em>
+        <span class="kbd">Ctrl</span><span class="kbd">K</span><em>search everything</em>
+        <span class="kbd">Ctrl</span><span class="kbd">Z</span><em>undo across pages</em>
+      </div>
+    </section>
+
+    <!-- Principles -->
+    <section class="section" id="features">
+      <header class="section-head">
+        <p class="kicker reveal">Why it's different</p>
+        <h2 class="reveal">Visual editing that respects your file.</h2>
+      </header>
+      <div class="cards">
+        <article class="card reveal">
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h7M9 16h5"/></svg>
+          </div>
+          <h3>Keeps your file intact</h3>
+          <p>Edits are spliced into the text. Comments, ordering and formatting you wrote are never rewritten, and everything written is KDL v1, which niri reads.</p>
+        </article>
+        <article class="card reveal">
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+          </div>
+          <h3>niri is the judge</h3>
+          <p>Every change is re-parsed with niri's own <code>niri-config</code> crate, so the errors you see are exactly the ones niri would report, with links to the line.</p>
+        </article>
+        <article class="card reveal">
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/></svg>
+          </div>
+          <h3>Safe to apply</h3>
+          <p>Saving is atomic and backs up the previous file. If niri rejects a reload, the backup comes back on its own; display changes revert in 15 seconds unless you keep them.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="stats" aria-label="By the numbers">
+      <div class="stat reveal"><b data-count="12">12</b><span>pages, from displays to raw KDL</span></div>
+      <div class="stat reveal"><b data-count="116">116</b><span>catalogued options, each checked against niri's parser</span></div>
+      <div class="stat reveal"><b data-count="9">9</b><span>built-in themes for the app itself</span></div>
+      <div class="stat reveal"><b data-count="0">0</b><span>comments rewritten when you edit visually</span></div>
+    </section>
+
+    <!-- Scrollytelling tour -->
+    <section class="section tour" id="tour">
+      <header class="section-head">
+        <p class="kicker reveal">The tour</p>
+        <h2 class="reveal">Every corner of niri, with a page of its own.</h2>
+      </header>
+      <div class="tour-grid">
+        <ol class="steps">
+          <li class="step" data-shot="keybinds">
+            <span class="step-num">01</span>
+            <h3>Key bindings</h3>
+            <p>Search and filter every binding, record a new combination by pressing it, pick an action from niri's catalogue and press <b>Run now</b> to try it. Combinations bound twice are flagged.</p>
+          </li>
+          <li class="step" data-shot="rules">
+            <span class="step-num">02</span>
+            <h3>Window rules</h3>
+            <p>Quick rules in two clicks: choose one, then click the window it should apply to. Rename, reorder, disable with KDL's <code>/-</code>, and see live which open windows each rule matches.</p>
+          </li>
+          <li class="step" data-shot="animations">
+            <span class="step-num">03</span>
+            <h3>Animations</h3>
+            <p>Spring and easing editors that use niri's own curve maths, draggable cubic-bézier handles and a live demo of how long each animation settles.</p>
+          </li>
+          <li class="step" data-shot="input">
+            <span class="step-num">04</span>
+            <h3>Input</h3>
+            <p>Keyboard layouts from the XKB catalogue, a layout switcher and a field to try the active layout, plus touchpad, mouse and focus behaviour.</p>
+          </li>
+          <li class="step" data-shot="search">
+            <span class="step-num">05</span>
+            <h3>Search everything</h3>
+            <p><span class="kbd">Ctrl</span> <span class="kbd">K</span> searches every setting by name. Arrow keys, Enter, and the option flashes on its page.</p>
+          </li>
+          <li class="step" data-shot="raw">
+            <span class="step-num">06</span>
+            <h3>Raw config, in sync</h3>
+            <p>A highlighted editor with niri's diagnostics inline. Edits here and on the visual pages stay in sync and share one undo history.</p>
+          </li>
+        </ol>
+        <div class="tour-stage">
+          <figure class="window window-flat">
+            <div class="window-chrome" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="swap">
+              <img data-name="keybinds" class="on" src="assets/shots/keybinds.webp" width="1920" height="1260" alt="The key bindings page with bindings drawn as key caps and an editor for the selected one." loading="lazy">
+              <img data-name="rules" src="assets/shots/rules.webp" width="1920" height="1260" alt="The window rules page with quick rules and a rule editor." loading="lazy">
+              <img data-name="animations" src="assets/shots/animations.webp" width="1920" height="1260" alt="The animations page with a spring curve editor." loading="lazy">
+              <img data-name="input" src="assets/shots/input.webp" width="1920" height="1260" alt="The input page with keyboard layouts and a layout switcher." loading="lazy">
+              <img data-name="search" src="assets/shots/search.webp" width="1920" height="1260" alt="The search palette listing matching settings." loading="lazy">
+              <img data-name="raw" src="assets/shots/raw.webp" width="1920" height="1260" alt="The raw config editor with syntax highlighting." loading="lazy">
+            </div>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- Themes -->
+    <section class="section themes" id="themes">
+      <header class="section-head">
+        <p class="kicker reveal">Make it yours</p>
+        <h2 class="reveal">Nine themes. Your accent.</h2>
+        <p class="sub reveal">By default the app's accent follows your niri focus ring, so it matches your desktop. Pick a theme below: this page follows along.</p>
+      </header>
+      <div class="theme-picker reveal" role="radiogroup" aria-label="Preview a theme">
+        <button role="radio" aria-checked="true" data-theme="studio-dark" data-shot="hero">Studio Dark</button>
+        <button role="radio" aria-checked="false" data-theme="studio-light" data-shot="search">Studio Light</button>
+        <button role="radio" aria-checked="false" data-theme="catppuccin-mocha" data-shot="themes">Catppuccin Mocha</button>
+        <button role="radio" aria-checked="false" data-theme="catppuccin-latte" data-shot="light">Catppuccin Latte</button>
+        <button role="radio" aria-checked="false" data-theme="tokyo-night" data-shot="keybinds">Tokyo Night</button>
+        <button role="radio" aria-checked="false" data-theme="rose-pine" data-shot="rules">Rosé Pine</button>
+        <button role="radio" aria-checked="false" data-theme="nord" data-shot="animations">Nord</button>
+        <button role="radio" aria-checked="false" data-theme="gruvbox-dark" data-shot="raw">Gruvbox Dark</button>
+      </div>
+      <figure class="window theme-window reveal">
+        <div class="window-chrome" aria-hidden="true"><span></span><span></span><span></span></div>
+        <img id="theme-shot" src="assets/shots/hero.webp" width="1920" height="1260" alt="niri studio in the selected theme." loading="lazy">
+      </figure>
+      <ul class="pills reveal">
+        <li>Follows the system light/dark setting</li>
+        <li>Accent: focus ring, theme or custom</li>
+        <li>Comfortable or compact density</li>
+        <li>Adjustable corner radius</li>
+        <li>Your desktop's font</li>
+        <li>Its own title bar, or the compositor's</li>
+      </ul>
+    </section>
+
+    <!-- Sandbox -->
+    <section class="section sandbox" id="sandbox">
+      <div class="sandbox-grid">
+        <div>
+          <p class="kicker reveal">Try before you save</p>
+          <h2 class="reveal">A sandbox that runs the real niri.</h2>
+          <p class="sub reveal">Press <b>Sandbox</b> and niri opens nested, as a window, running a private copy of your config. Every valid edit is mirrored into it as you make it. Your file and your running session stay untouched until you save.</p>
+          <ul class="checks reveal">
+            <li>Unsaved edits to included files are mirrored too</li>
+            <li>Startup programs are left out unless you ask for them</li>
+            <li>A couple of terminals open so layout and decorations have something to show</li>
+            <li>The nested niri exits with the app, even if it is killed</li>
+          </ul>
+        </div>
+        <div class="flow reveal" aria-label="How the sandbox works: your edits go to a private copy, which the nested niri reloads">
+          <svg viewBox="0 0 420 300" role="img" aria-hidden="true">
+            <defs>
+              <linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".2"/><stop offset="1" stop-color="currentColor"/></linearGradient>
+            </defs>
+            <path class="wire" d="M90 70 C 200 70, 200 150, 300 150"/>
+            <path class="wire" d="M90 230 C 200 230, 200 150, 300 150" />
+            <path class="pulse" d="M90 70 C 200 70, 200 150, 300 150"/>
+            <path class="pulse delay" d="M90 230 C 200 230, 200 150, 300 150"/>
+          </svg>
+          <div class="node n1"><b>Your edits</b><span>in niri studio</span></div>
+          <div class="node n2"><b>Your config file</b><span>untouched until Save</span></div>
+          <div class="node n3"><b>Nested niri</b><span>reloads a private copy</span></div>
+        </div>
+      </div>
+      <figure class="window reveal">
+        <div class="window-chrome" aria-hidden="true"><span></span><span></span><span></span></div>
+        <img src="assets/shots/sandbox.webp" width="1920" height="1260" alt="niri studio with the sandbox running: a banner explains that edits are mirrored into the nested niri window." loading="lazy">
+      </figure>
+    </section>
+
+    <!-- Install -->
+    <section class="section install" id="install">
+      <header class="section-head">
+        <p class="kicker reveal">Get started</p>
+        <h2 class="reveal">Build it next to your niri checkout.</h2>
+        <p class="sub reveal">niri studio builds against the niri source beside it, so its view of the config always matches the niri you run.</p>
+      </header>
+      <div class="code reveal">
+        <button class="copy" type="button" data-copy="install-cmds">Copy</button>
+        <pre id="install-cmds"><code><span class="c"># side by side: ./niri and ./niri-studio</span>
+git clone https://github.com/niri-wm/niri
+git clone https://github.com/ulaas/niri-studio
+cd niri-studio
+./install.sh   <span class="c"># → ~/.local/bin/niri-studio + desktop entry</span></code></pre>
+      </div>
+      <div class="install-notes reveal">
+        <div><b>Run it</b><span>Launch <code>niri-studio</code> from your app launcher, or pass a config path: <code>niri-studio ~/.config/niri/config.kdl</code>.</span></div>
+        <div><b>Test it</b><span><code>cargo test --workspace</code> round-trips real configs and checks every option against niri's parser.</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="brand"><img src="assets/mark.svg" alt="" width="22" height="22"><span>niri studio</span></div>
+    <p>Free software under the GPL-3.0-or-later. An independent project, not affiliated with the niri project.</p>
+    <p><a href="https://github.com/ulaas/niri-studio" rel="noopener">Source</a> · <a href="https://github.com/niri-wm/niri" rel="noopener">niri</a> · <a href="#top">Back to top ↑</a></p>
+  </footer>
+</body>
+</html>
