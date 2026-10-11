@@ -237,14 +237,12 @@
     <section class="section install" id="install">
       <header class="section-head">
         <p class="kicker reveal">Get started</p>
-        <h2 class="reveal">Build it next to your niri checkout.</h2>
-        <p class="sub reveal">niri studio builds against the niri source beside it, so its view of the config always matches the niri you run.</p>
+        <h2 class="reveal">Build it in two commands.</h2>
+        <p class="sub reveal">Cargo fetches niri's own config parser at a pinned commit, so niri studio accepts exactly what niri does. You need Rust 1.87+ and the libinput, libudev, Wayland and libxkbcommon development files; the README lists the packages for Fedora, Arch, Debian/Ubuntu and openSUSE.</p>
       </header>
       <div class="code reveal">
         <button class="copy" type="button" data-copy="install-cmds">Copy</button>
-        <pre id="install-cmds"><code><span class="c"># side by side: ./niri and ./niri-studio</span>
-git clone https://github.com/niri-wm/niri
-git clone https://github.com/ulaas/niri-studio
+        <pre id="install-cmds"><code>git clone https://github.com/ulaas/niri-studio
 cd niri-studio
 ./install.sh   <span class="c"># → ~/.local/bin/niri-studio + desktop entry</span></code></pre>
       </div>

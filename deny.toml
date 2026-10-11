@@ -11,13 +11,14 @@ unmaintained = "workspace"
 
 [bans]
 multiple-versions = "allow"
-# The only wildcards are path dependencies on the niri checkout next to this one (niri's own
-# crates included, which we can't mark unpublished); crates.io rejects real wildcards anyway.
+# The only wildcards are path dependencies between workspace crates (ours, and niri's own,
+# which we can't mark unpublished); crates.io rejects real wildcards anyway.
 wildcards = "allow"
 
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-# niri depends on Smithay from git.
-allow-git = ["https://github.com/Smithay/smithay.git"]
+# niri's config and IPC crates come from niri's repository at a pinned commit; niri itself
+# depends on Smithay from git.
+allow-git = ["https://github.com/niri-wm/niri", "https://github.com/Smithay/smithay.git"]

@@ -1696,6 +1696,7 @@ dependencies = [
 [[package]]
 name = "niri-config"
 version = "26.4.0"
+source = "git+https://github.com/niri-wm/niri?rev=d0cd58ec5ac6b2d41d42478fb4f3cc7c0c687db9#d0cd58ec5ac6b2d41d42478fb4f3cc7c0c687db9"
 dependencies = [
  "bitflags 2.13.2",
  "csscolorparser",
@@ -1711,6 +1712,7 @@ dependencies = [
 [[package]]
 name = "niri-ipc"
 version = "26.4.0"
+source = "git+https://github.com/niri-wm/niri?rev=d0cd58ec5ac6b2d41d42478fb4f3cc7c0c687db9#d0cd58ec5ac6b2d41d42478fb4f3cc7c0c687db9"
 dependencies = [
  "clap",
  "serde",

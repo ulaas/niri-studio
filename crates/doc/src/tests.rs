@@ -15,7 +15,9 @@ const BASE: &str = "// my config\nlayout {\n    gaps 16 // keep me\n    focus-ri
 
 #[test]
 fn round_trips_real_configs() {
-    let mut paths = vec![PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../niri/resources/default-config.kdl"))];
+    // niri's default config (a copy of resources/default-config.kdl from the pinned niri commit),
+    // and yours when there is one.
+    let mut paths = vec![PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/niri-default-config.kdl"))];
     paths.push(Document::default_path());
     for path in paths.into_iter().filter(|p| p.exists()) {
         let d = Document::load(&path).unwrap();

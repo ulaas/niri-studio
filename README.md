@@ -9,8 +9,8 @@ written in Rust with egui. **[See the tour →](https://ulaas.github.io/niri-stu
 
 - **Keeps your file intact.** Edits are spliced into the text; comments, ordering and
   formatting you wrote are never rewritten. Everything written is KDL v1, which niri reads.
-- **niri is the judge.** Every change is re-parsed with niri's own `niri-config` crate (built
-  from your niri checkout), so errors are exactly what niri would report, with line links.
+- **niri is the judge.** Every change is re-parsed with niri's own `niri-config` crate (pinned
+  to a niri release commit), so errors are exactly what niri would report, with line links.
 - **Safe apply.** Saving is atomic and backs up the previous file. If niri reports that the
   reload failed, the backup is restored automatically. Display changes revert after 15 seconds
   unless you confirm them.
@@ -52,15 +52,54 @@ with KDL's `/-`, so it stays in the file.
 
 ## Building
 
-niri-studio depends on `../niri/niri-config` and `../niri/niri-ipc` (the niri checkout next to
-this one), so its view of the config always matches the niri you run.
+You need Rust 1.87 or newer, a C toolchain, `pkg-config` and the development files for libinput,
+libudev, Wayland and libxkbcommon (niri's config crate builds against them). Cargo fetches
+niri's config and IPC crates from [niri's repository](https://github.com/niri-wm/niri) at the
+commit pinned in `Cargo.toml`; no niri checkout is needed.
+
+**Fedora**
 
 ```sh
-./install.sh            # release build → ~/.local/bin/niri-studio + desktop entry
-cargo test --workspace  # round-trips real configs; checks every option against niri's parser
+sudo dnf install cargo rust gcc pkgconf-pkg-config libinput-devel systemd-devel wayland-devel libxkbcommon-devel
 ```
 
-`edge-update` rebuilds it whenever either niri-studio or niri gets new commits.
+**Arch Linux**
+
+```sh
+sudo pacman -S --needed base-devel rust pkgconf libinput systemd-libs wayland libxkbcommon
+```
+
+**Debian / Ubuntu.** Their packaged Rust is usually older than 1.87, so install it with
+[rustup](https://rustup.rs) and take the rest from apt:
+
+```sh
+sudo apt install build-essential pkg-config libinput-dev libudev-dev libwayland-dev libxkbcommon-dev
+```
+
+**openSUSE Tumbleweed**
+
+```sh
+sudo zypper install cargo gcc pkgconf-pkg-config libinput-devel systemd-devel wayland-devel libxkbcommon-devel
+```
+
+Then:
+
+```sh
+git clone https://github.com/ulaas/niri-studio
+cd niri-studio
+./install.sh            # release build → ~/.local/bin/niri-studio + a desktop entry
+cargo test --workspace  # round-trips configs; checks every option against niri's parser
+```
+
+At run time niri studio talks to the niri you're running over `$NIRI_SOCKET`. The sandbox needs
+the `niri` binary, and a terminal for its sample windows (foot, alacritty, kitty, ghostty,
+wezterm, ptyxis, gnome-terminal or konsole). `fc-match` (fontconfig) is used to pick up your
+desktop's font, when present.
+
+To follow a newer niri, change the `rev` of `niri-config` and `niri-ipc` in `Cargo.toml`, run
+`cargo update -p niri-config -p niri-ipc` and `cargo test`, and refresh
+`crates/doc/tests/fixtures/niri-default-config.kdl` from that commit's
+`resources/default-config.kdl`.
 
 ## Layout
 

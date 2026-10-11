@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# Regenerates site/assets/shots/*.webp from niri's default config, so no personal config ends up
-# in the images. Needs a running Wayland session (niri), ImageMagick and a release build.
+# Regenerates site/assets/shots/*.webp from niri's default config (the copy kept as a test
+# fixture), so no personal config ends up in the images. Needs a running niri session, kitty,
+# ImageMagick and a release build.
 # A nested niri window and the app open briefly while it runs.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-niri_src=../niri
+default_config=crates/doc/tests/fixtures/niri-default-config.kdl
 work=$(mktemp -d)
 trap 'kill "${npid:-}" 2>/dev/null || true; rm -rf "$work"' EXIT
 
 cargo build --release -p niri-studio
 mkdir -p "$work/home/.config/niri" "$work/raw" "$work/nested" site/assets/shots
-cp "$niri_src/resources/default-config.kdl" "$work/home/.config/niri/config.kdl"
-sed '/^spawn-at-startup\|^spawn-sh-at-startup/d' "$niri_src/resources/default-config.kdl" >"$work/nested/config.kdl"
+cp "$default_config" "$work/home/.config/niri/config.kdl"
+sed '/^spawn-at-startup\|^spawn-sh-at-startup/d' "$default_config" >"$work/nested/config.kdl"
 
 # A nested niri with a couple of windows stands in for the live session.
 env -u NIRI_SOCKET HOME="$work/home" niri --config "$work/nested/config.kdl" >/dev/null 2>&1 &
