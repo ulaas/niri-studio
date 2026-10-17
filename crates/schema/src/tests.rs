@@ -68,8 +68,14 @@ fn rule_props_are_accepted_by_niri() {
         for (name, kind, _, _) in props {
             let o = Opt { path: name, kind: *kind, label: "", help: "", page: Page::Rules, section: "" };
             for v in values(&o) {
-                let v = v.map(|v| v.to_kdl()).unwrap_or_default();
-                check(&format!("{node} {{\n    {name} {v}\n}}\n"), &format!("{node}/{name}"), &mut failures);
+                // Render through the doc API so nested props get their block the way the app writes it.
+                let mut d = Document::from_text(PathBuf::from("/nonexistent/config.kdl"), format!("{node} {{\n}}\n"));
+                let rule = d.find_all(&p(node))[0].clone();
+                match v {
+                    None => d.set_flag_in(Some(&rule), &p(name), true).unwrap(),
+                    Some(v) => d.set_arg_in(Some(&rule), &p(name), v).unwrap(),
+                }
+                check(&d.main().text, &format!("{node}/{name}"), &mut failures);
             }
         }
     }

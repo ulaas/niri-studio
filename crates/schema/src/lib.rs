@@ -485,7 +485,8 @@ pub static ACTIONS: &[(&str, &str)] = &[
 #[cfg(test)]
 mod tests;
 
-/// A property inside a rule node: (name, kind, label, help).
+/// A property inside a rule node: (path, kind, label, help). The path is `/`-separated for
+/// options nested in a block, e.g. `border/off`.
 pub type RuleProp = (&'static str, Kind, &'static str, &'static str);
 
 pub static WINDOW_RULE_PROPS: &[RuleProp] = &[
@@ -503,6 +504,21 @@ pub static WINDOW_RULE_PROPS: &[RuleProp] = &[
     ("geometry-corner-radius", Kind::Float { min: 0.0, max: 64.0 }, "Corner radius", "For borders, focus ring and shadow."),
     ("clip-to-geometry", Kind::Bool, "Clip to corners", "Cut the window to its rounded geometry."),
     ("draw-border-with-background", Kind::Bool, "Border with background", "Fill behind the window with the border color."),
+    ("border/off", Kind::Flag, "Hide border", "No border on this window, focused or not."),
+    ("border/on", Kind::Flag, "Show border", "Draw a border even when the layout turns it off."),
+    ("border/width", Kind::Float { min: 0.0, max: 64.0 }, "Border width", ""),
+    ("border/active-color", Kind::Color, "Border active color", ""),
+    ("border/inactive-color", Kind::Color, "Border inactive color", ""),
+    ("border/urgent-color", Kind::Color, "Border urgent color", ""),
+    ("focus-ring/off", Kind::Flag, "Hide focus ring", "No focus ring on this window."),
+    ("focus-ring/on", Kind::Flag, "Show focus ring", "Draw the focus ring even when the layout turns it off."),
+    ("focus-ring/width", Kind::Float { min: 0.0, max: 64.0 }, "Focus ring width", ""),
+    ("focus-ring/active-color", Kind::Color, "Focus ring active color", ""),
+    ("focus-ring/inactive-color", Kind::Color, "Focus ring inactive color", ""),
+    ("focus-ring/urgent-color", Kind::Color, "Focus ring urgent color", ""),
+    ("shadow/off", Kind::Flag, "Hide shadow", ""),
+    ("shadow/on", Kind::Flag, "Show shadow", "Draw a shadow even when the layout turns it off."),
+    ("shadow/color", Kind::Color, "Shadow color", ""),
     ("variable-refresh-rate", Kind::Bool, "Variable refresh rate", "Enable VRR while this window is shown (needs on-demand VRR)."),
     ("tiled-state", Kind::Bool, "Tell the app it's tiled", ""),
     ("baba-is-float", Kind::Bool, "Baba is float", "Make the window bob gently."),
@@ -519,6 +535,9 @@ pub static LAYER_RULE_PROPS: &[RuleProp] = &[
     ("block-out-from", Kind::Enum(&["screencast", "screen-capture"]), "Hide from", ""),
     ("geometry-corner-radius", Kind::Float { min: 0.0, max: 64.0 }, "Corner radius", ""),
     ("place-within-backdrop", Kind::Bool, "Place within overview backdrop", ""),
+    ("shadow/off", Kind::Flag, "Hide shadow", ""),
+    ("shadow/on", Kind::Flag, "Show shadow", "Draw a shadow even when the layout turns it off."),
+    ("shadow/color", Kind::Color, "Shadow color", ""),
     ("baba-is-float", Kind::Bool, "Baba is float", ""),
 ];
 

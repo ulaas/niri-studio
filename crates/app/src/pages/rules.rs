@@ -619,9 +619,19 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, r: &NodeRef, idx: usi
     ui.separator();
     ui.label(RichText::new("Properties").strong());
     let props = st.tab.props();
-    let set: Vec<&RuleProp> = props.iter().filter(|(n, ..)| cx.doc.has_in(Some(r), &[Seg::Name((*n).into())])).collect();
+    let set: Vec<&RuleProp> = props.iter().filter(|(n, ..)| cx.doc.has_in(Some(r), &doc::p(n))).collect();
+    // Blocks like `border { }` that had children before this frame's edits.
+    let blocks: Vec<&str> = set.iter().filter_map(|(n, ..)| n.split_once('/').map(|(b, _)| b)).collect();
     for (name, kind, label, help) in &set {
-        widgets::option_at(ui, cx, Some(r), &[Seg::Name((*name).into())], *kind, label, help, false);
+        widgets::option_at(ui, cx, Some(r), &doc::p(name), *kind, label, help, false);
+    }
+    // Resetting the last option in a block leaves it empty; an empty `border { }` still turns
+    // the border on in niri, so drop it.
+    for b in blocks {
+        let path = doc::p(b);
+        if cx.doc.find_in(Some(r), &path).is_some_and(|n| cx.doc.children(&n).is_empty()) {
+            let _ = cx.doc.remove_all_in(Some(r), &path);
+        }
     }
     if set.is_empty() {
         ui.weak("No properties yet.");
@@ -637,14 +647,19 @@ fn editor(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, r: &NodeRef, idx: usi
         }
     });
     if let Some((name, kind, ..)) = add {
+        if kind == Kind::Flag {
+            let _ = cx.doc.set_flag_in(Some(r), &doc::p(name), true);
+            return;
+        }
         let v = match kind {
             Kind::Bool | Kind::Flag => Val::Bool(true),
             Kind::Float { min, max } => Val::Float(if (min..=max).contains(&1.0) { if max <= 1.0 { 0.9 } else { 12.0 } } else { min }),
             Kind::Int { .. } => Val::Int(400),
             Kind::Enum(v) => Val::str(v[0]),
-            Kind::Str | Kind::Path | Kind::Color => Val::str(""),
+            Kind::Color => Val::str("#7fc8ff"),
+            Kind::Str | Kind::Path => Val::str(""),
         };
-        let _ = cx.doc.set_arg_in(Some(r), &[Seg::Name(name.into())], v);
+        let _ = cx.doc.set_arg_in(Some(r), &doc::p(name), v);
     }
     let _ = &st.renaming;
 }
