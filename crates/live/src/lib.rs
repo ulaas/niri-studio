@@ -73,12 +73,7 @@ impl Live {
         };
         let outputs = fetch_outputs().unwrap_or_default();
 
-        let mut socket = Socket::connect().context("connecting to niri")?;
-        match socket.send(Request::EventStream)? {
-            Ok(Response::Handled) => {}
-            Ok(other) => bail!("unexpected reply {other:?}"),
-            Err(e) => bail!("{e}"),
-        }
+        let mut read = event_stream()?;
         {
             let mut s = self.state();
             s.connected = true;
@@ -88,11 +83,10 @@ impl Live {
         }
         repaint();
 
-        let mut read = socket.read_events();
         let mut es = EventStreamState::default();
         let mut seen_initial_config = false;
         loop {
-            let event = read().context("reading niri events")?;
+            let Some(event) = read()? else { continue };
             let config_loaded = match &event {
                 Event::ConfigLoaded { failed } => Some(*failed),
                 _ => None,
@@ -129,6 +123,34 @@ impl Live {
             self.state().outputs = outputs;
         }
     }
+}
+
+/// Opens niri's event stream. Unlike `Socket::read_events`, events this niri-ipc doesn't know
+/// (newer or patched niri builds) are skipped as `None` instead of ending the stream.
+fn event_stream() -> Result<impl FnMut() -> Result<Option<Event>>> {
+    use std::io::{BufRead as _, BufReader, Write as _};
+    use std::os::unix::net::UnixStream;
+
+    let path = std::env::var_os(niri_ipc::socket::SOCKET_PATH_ENV).context("connecting to niri (is NIRI_SOCKET set?)")?;
+    let mut stream = UnixStream::connect(&path).context("connecting to niri")?;
+    let mut req = serde_json::to_string(&Request::EventStream)?;
+    req.push('\n');
+    stream.write_all(req.as_bytes())?;
+    let mut reader = BufReader::new(stream);
+    let mut line = String::new();
+    reader.read_line(&mut line)?;
+    match serde_json::from_str::<niri_ipc::Reply>(&line).context("parsing niri's reply")? {
+        Ok(Response::Handled) => {}
+        Ok(other) => bail!("unexpected reply {other:?}"),
+        Err(e) => bail!("{e}"),
+    }
+    Ok(move || {
+        line.clear();
+        if reader.read_line(&mut line).context("reading niri events")? == 0 {
+            bail!("niri closed the event stream");
+        }
+        Ok(serde_json::from_str(&line).ok())
+    })
 }
 
 /// One-shot request on a fresh connection.
