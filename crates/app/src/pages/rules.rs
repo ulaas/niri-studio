@@ -55,6 +55,8 @@ pub struct State {
     picking: Option<(Purpose, Receiver<anyhow::Result<Option<Window>>>)>,
     with_title: bool,
     renaming: Option<(Sel, String)>,
+    /// The rename field still needs keyboard focus (given once, so Enter and clicks can take it away).
+    rename_focus: bool,
     namespaces: Option<Vec<String>>,
 }
 
@@ -290,15 +292,18 @@ fn rule_list(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, list: &[(usize, us
 
             if let Some((rsel, name)) = st.renaming.as_mut().filter(|(s, _)| *s == sel) {
                 let resp = ui.add(egui::TextEdit::singleline(name).desired_width(200.0).hint_text("Rule name"));
-                resp.request_focus();
+                if std::mem::take(&mut st.rename_focus) {
+                    resp.request_focus();
+                }
                 let _ = rsel;
-                if resp.lost_focus() {
+                let (enter, escape) = ui.input(|i| (i.key_pressed(egui::Key::Enter), i.key_pressed(egui::Key::Escape)));
+                if enter || escape || resp.lost_focus() {
                     let name = name.clone();
                     let target = match e {
                         Entry::On { r, .. } => cx.doc.node(r).map(|n| (r.file, n.span().offset())),
                         Entry::Off { d, .. } => Some((d.file, d.range.start)),
                     };
-                    if !ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                    if !escape {
                         if let Some((f, off)) = target {
                             cx.doc.set_label_at(f, off, Some(name.as_str()).filter(|n| !n.trim().is_empty()));
                         }
@@ -317,6 +322,7 @@ fn rule_list(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, list: &[(usize, us
                 }
                 if r.double_clicked() {
                     st.renaming = Some((sel.clone(), label.clone()));
+                    st.rename_focus = true;
                 }
             }
 
@@ -342,6 +348,7 @@ fn rule_list(ui: &mut egui::Ui, cx: &mut Ctx, st: &mut State, list: &[(usize, us
                 }
                 if widgets::small_icon_button(ui, icons::PENCIL_SIMPLE, "Rename").clicked() {
                     st.renaming = Some((sel.clone(), label.clone()));
+                    st.rename_focus = true;
                 }
                 if let Entry::On { idx, r } = e {
                     let pos = on_refs.iter().position(|x| x == r).unwrap_or(0);
