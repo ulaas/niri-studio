@@ -10,7 +10,8 @@ written in Rust with egui. **[See the tour →](https://ulaas.github.io/niri-stu
 - **Keeps your file intact.** Edits are spliced into the text; comments, ordering and
   formatting you wrote are never rewritten. Everything written is KDL v1, which niri reads.
 - **niri is the judge.** Every change is re-parsed with niri's own `niri-config` crate (pinned
-  to a niri release commit), so errors are exactly what niri would report, with line links.
+  to a commit of [ulaas/niri](https://github.com/ulaas/niri)'s `minimize` branch: current niri
+  plus floating-window minimize), so errors are exactly what niri would report, with line links.
 - **Safe apply.** Saving is atomic and backs up the previous file. If niri reports that the
   reload failed, the backup is restored automatically. Display changes revert after 15 seconds
   unless you confirm them.
@@ -23,7 +24,7 @@ written in Rust with egui. **[See the tour →](https://ulaas.github.io/niri-stu
 | Layout | Live workspace preview drawn from niri's parsed layout; gaps, struts, column/height presets |
 | Appearance | Focus ring, border (solid or gradient with angle dial), shadow, tabs, cursor, blur |
 | Animations | Spring and easing editors with niri's curve maths, draggable cubic-bézier handles, live demo |
-| Key bindings | Search, duplicate-combination warnings, key recorder, action picker, ▶ run now |
+| Key bindings | Search, duplicate-combination warnings, key recorder (modifier-only combinations too), press and release actions, action picker, ▶ run now |
 | Window rules | Quick rules: click a button, then click a window. Rename, enable/disable (`/-`), reorder, duplicate, delete; a live list of the windows each rule matches |
 | Input, Gestures, Misc | Forms generated from the option schema |
 | Startup | `spawn-at-startup`, `spawn-sh-at-startup`, environment variables |
@@ -68,8 +69,8 @@ To check the download came from this repository's release workflow:
 
 You need Rust 1.87 or newer, a C toolchain, `pkg-config` and the development files for libinput,
 libudev, Wayland and libxkbcommon (niri's config crate builds against them). Cargo fetches
-niri's config and IPC crates from [niri's repository](https://github.com/niri-wm/niri) at the
-commit pinned in `Cargo.toml`; no niri checkout is needed.
+niri's config and IPC crates from [ulaas/niri](https://github.com/ulaas/niri) at the commit
+pinned in `Cargo.toml`; no niri checkout is needed.
 
 **Fedora**
 

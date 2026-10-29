@@ -12,9 +12,10 @@ rust-version = "1.87"
 [workspace.dependencies]
 kdl = { version = "6.7", features = ["v1"] }
 # niri's own config parser and IPC types, pinned to the niri commit niri-studio is tested
-# against, so what it accepts is exactly what that niri accepts.
-niri-config = { git = "https://github.com/niri-wm/niri", rev = "d0cd58ec5ac6b2d41d42478fb4f3cc7c0c687db9" }
-niri-ipc = { git = "https://github.com/niri-wm/niri", rev = "d0cd58ec5ac6b2d41d42478fb4f3cc7c0c687db9", features = ["clap"] }
+# against, so what it accepts is exactly what that niri accepts. This is the `minimize`
+# branch of ulaas/niri: upstream niri plus floating-window minimize (`minimize-window`).
+niri-config = { git = "https://github.com/ulaas/niri", rev = "fe5b5a31f617040ed808ecc87e61ed7b30d328e8" }
+niri-ipc = { git = "https://github.com/ulaas/niri", rev = "fe5b5a31f617040ed808ecc87e61ed7b30d328e8", features = ["clap"] }
 miette = "5.10"
 anyhow = "1"
 serde_json = "1"

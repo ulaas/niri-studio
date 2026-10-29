@@ -19,6 +19,6 @@ wildcards = "allow"
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-# niri's config and IPC crates come from niri's repository at a pinned commit; niri itself
-# depends on Smithay from git.
-allow-git = ["https://github.com/niri-wm/niri", "https://github.com/Smithay/smithay.git"]
+# niri's config and IPC crates come from ulaas/niri (niri plus floating-window minimize) at a
+# pinned commit; niri itself depends on Smithay from git.
+allow-git = ["https://github.com/ulaas/niri", "https://github.com/Smithay/smithay.git"]

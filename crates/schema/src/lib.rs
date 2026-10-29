@@ -471,6 +471,7 @@ pub static ACTIONS: &[(&str, &str)] = &[
     ("set-column-width", "e.g. \"-10%\" or \"+10\""),
     ("expand-column-to-available-width", ""),
     ("toggle-window-floating", ""),
+    ("minimize-window", ""),
     ("switch-focus-between-floating-and-tiling", ""),
     ("toggle-window-rule-opacity", ""),
     ("switch-layout", "\"next\", \"prev\" or index"),
